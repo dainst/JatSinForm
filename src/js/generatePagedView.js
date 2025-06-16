@@ -80,10 +80,8 @@ function controlPagedJsHandler() {
                     if(nodeParams["contexts"]["pageId"] == firstTextPageId) {
                         if(nodeParams["currentFigure"]) {
                             pushFigRefToNextNode(sourceNode.id, nodeParams["currentFigure"].id);
-                            console.log("push: ", nodeParams["currentFigure"].id)
                         }
                         if(nodeParams["nextFigure"]) {
-                            console.log("push: ", nodeParams["nextFigure"].id)
                             pushFigRefToNextNode(sourceNode.id, nodeParams["nextFigure"].id);
                         }
                     }
@@ -1185,7 +1183,7 @@ Handle figure reference management:
  */
 function getNextFigRefs(currentNodeId) {
 
-    const rangeNextFigRefs = 2;
+    const rangeNextFigRefs = 5;
 
     // get textContent and figure map:
     let textContentMap = JSON.parse(localStorage.getItem("text-content-map"));
@@ -1494,7 +1492,6 @@ function calculateNodeDistances(contexts, sourceNode) {
     if(nodeTypes["sourceNodeType"] === "regular-node") {
         contexts = calculateDistancesOfRegularNodes(contexts, sourceNode);
     }
-
     // modulate distances when figure is elementBefore
     if(nodeTypes["elementBeforeType"]) {  
         let marginBottom = parseInt(getComputedStyle(sourceNode).marginBottom);
@@ -1505,8 +1502,6 @@ function calculateNodeDistances(contexts, sourceNode) {
         }
     } 
     return (contexts);
-
-  
 }
 
 /**
@@ -1706,9 +1701,9 @@ function testCalculationsOfNodeDistances(pageElement) {
     
     let pageId = (pageElement !== null) ? pageElement.id : false;
     let pageContent = pageElement.querySelector(".pagedjs_page_content");
-
     let selector = ".text-content:not(.page-title,.page-subtitle,.page-authors),figure";
     let elementsOfPage = pageContent.querySelectorAll(selector);
+    
     for (let i = 0; i < elementsOfPage.length; i++) {
         let element = elementsOfPage[i]; 
         let isSplitNode = element.getAttribute("is-split-node");
@@ -1757,7 +1752,7 @@ function testCalculationsOfNodeDistances(pageElement) {
         let warnColor = "color: #ffc107;";
         let passedColor = "color: green;";
 
-        // if(/FIGURE/.test(element.tagName)) {
+        // if(/boxed-text/.test(element.className)) {
         
             let pageIdLog = pageId + "----------------------";
             let elementIdLog = "---" + elementId;
@@ -1808,7 +1803,6 @@ function testCalculationsOfNodeDistances(pageElement) {
 
             console.log("---Element", element);
     
-        
        // }
     } 
 }
@@ -1869,8 +1863,6 @@ function setPageContextsAsElementAttribute(contexts, sourceNode, renderNode) {
         renderNode.setAttribute('footnoteAreaHeight', contextRenderNode["footnoteAreaHeight"]);
         renderNode.setAttribute("pageContentTop", contexts["pageContentTop"]);
     }
-
- 
 
     /* concat all attributes values together:
     let allAttributeValues = "fromNodeTop: " + contexts["distanceFromNodeTop"] + "px | " +
