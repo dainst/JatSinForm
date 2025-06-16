@@ -22,6 +22,11 @@ const panelWrapper = document.createElement("div");
 panelWrapper.id = "panel-wrapper";
 panelWrapper.classList.add("column");
 
+// back-to-top-element:
+const backToTop = document.createElement("a");
+backToTop.id = "back-to-top";
+backToTop.href = "#doi-link";
+
 /** --------------------------------------
  * window document state event listener:
  * @type {document}
@@ -52,8 +57,11 @@ panelWrapper.classList.add("column");
         // extract supplement links from anchors:
         let anchors = document.querySelectorAll( // exclude weblinks and zenon-links
             "a.ext-ref:not([data-specific-use='weblink']):not([data-specific-use='zenon']"
-        ); 
+        );
         let supplementsLinks = extractSupplementsLinks(anchors);
+
+        // filter and count supplementLinks:
+        supplementsLinks = filterSupplementLinks(supplementsLinks);
         let numSupplements = countSupplementLinks(supplementsLinks);
         
         // create content and supplementary panels:
@@ -96,7 +104,8 @@ panelWrapper.classList.add("column");
         textContentWrapper.append(doiElement);
         textContentWrapper.append(titleHeader);
         textContentWrapper.append(contentBody);
-
+        textContentWrapper.append(backToTop);
+    
         // add wrapper to document-body:
         mainWrapper.appendChild(navHeader);
         mainWrapper.appendChild(textContentWrapper);
@@ -149,14 +158,14 @@ function createImprintSection(front) {
     if(front.querySelector(".journal-title") !== null) {
         journalTitle = front.querySelector(".journal-title");
         // add journal DOI:
+        let journalDOILink;
         if(front.querySelector(".journal-id[journal-id-type='doi']") !== null) {
             journalDOI = front.querySelector(".journal-id[journal-id-type='doi']");
-            let journalDOILink = document.createElement("a");
+            journalDOILink = document.createElement("a");
             journalDOILink.id = "journal-doi-link";
             journalDOILink.href = journalDOI.innerText;
             journalDOILink.textContent = journalTitle.textContent;
             journalTitle.innerHTML = journalDOILink.outerHTML;
-        
         } else {
             journalTitle.innerHTML = journalTitle.innerText;
         }
@@ -875,7 +884,7 @@ function appendFetchStateBarToPanel(panel, dataSourceId) {
     
     let fetchStateBar = document.createElement("div");
     fetchStateBar.id = "fetch-state-" + dataSourceId;
-    fetchStateBar.classList.add("warning-box");
+    fetchStateBar.classList.add("warning-box", "fetch-state");
     panel.appendChild(fetchStateBar); 
 }
 
@@ -886,8 +895,9 @@ function appendFetchStateBarToPanel(panel, dataSourceId) {
  */
 function extractSupplementsLinks(anchors) {
 
-    let supplementsLinks = [];
     let selfHost= window.location.host;
+    let supplementsLinks = [];
+    let uniques = [];
         
     // parse anchors:
     let targetPrefix; 
@@ -898,21 +908,12 @@ function extractSupplementsLinks(anchors) {
             // define id of referencing anchor
             let refAnchorId = "data-ref-" + i + 1;
             anchors[i].id = refAnchorId;
-            
+
             // parse url:
             let url = new URL(anchors[i].href);
             let apiRefUrl = getApiRefUrl(url);
             
             if(apiRefUrl.apiUrl) {
-                // define url properties
-                let urlProperties = {
-                    'url': url,
-                    'apiUrl': apiRefUrl.apiUrl,
-                    'apiSource': apiRefUrl.apiSource,
-                    'refAnchorId': refAnchorId,
-                    "refText": anchors[i].textContent
-                };
-                supplementsLinks.push(urlProperties);
 
                 // define target-prefix by apiSource: 
                 if(/gazetteer/.test(apiRefUrl.apiSource)) {
@@ -924,9 +925,32 @@ function extractSupplementsLinks(anchors) {
                 if(/field/.test(apiRefUrl.apiSource)) {
                     targetPrefix = "field";
                 }
+
+                // find duplicates:
+                let isUnique;
+                if(!uniques.includes(apiRefUrl.apiUrl)) {
+                    isUnique = true;
+                    uniques.push(apiRefUrl.apiUrl);
+                } else {
+                    isUnique = false;
+                }
+
+                // define url properties:
+                let urlProperties = {
+                    'url': url,
+                    'apiUrl': apiRefUrl.apiUrl,
+                    'apiSource': apiRefUrl.apiSource,
+                    'refAnchorId': refAnchorId,
+                    "refText": anchors[i].textContent,
+                    "targetPrefix": targetPrefix,
+                    "isUnique": isUnique,
+                    "anchor": anchors[i]
+                };
+                supplementsLinks.push(urlProperties);
             }
+            
             // set #target-prefix-id as href-attribute to anchor: 
-            anchors[i].href = "#target-" + targetPrefix + "-" + refAnchorId;
+            //anchors[i].href = "#target-" + targetPrefix + "-" + refAnchorId;
         }
     }
     return(supplementsLinks);
@@ -947,19 +971,52 @@ function countSupplementLinks(supplementsLinks) {
         "field": 0,
     }
     // count each supplement link:
-    supplementsLinks.forEach(supplementsLink => {
-        if(/gazetteer/.test(supplementsLink.apiSource)) {
+    supplementsLinks.forEach(supplementLink => {
+        if(/gazetteer/.test(supplementLink.apiSource)) {
             numSupplements["gazetteer"] = numSupplements["gazetteer"] + 1;
         }
-        if(/arachne/.test(supplementsLink.apiSource)) {
+        if(/arachne/.test(supplementLink.apiSource)) {
             numSupplements["arachne"] = numSupplements["arachne"] + 1;
         }
-        if(/field/.test(supplementsLink.apiSource)) {
+        if(/field/.test(supplementLink.apiSource)) {
             numSupplements["field"] = numSupplements["field"] + 1;
         }
     });
 
     return(numSupplements);
+}
+
+/**
+ * filter supplement links (to handle multiple references to one object)
+ * @param {array} supplementsLinks: array enriched with urlProperties
+ * @returns {array} supplementsLinks: filtered by isUnique and adapted
+ * href of non-unique anchors pointing to "externalObjectElement" as target
+ */
+function filterSupplementLinks(supplementLinks) {
+
+    // iterate through supplementLinks:
+    supplementLinks.forEach(supplementLink => {     
+        let anchor = supplementLink["anchor"];
+        let refAnchorId = supplementLink["refAnchorId"];
+        let targetPrefix = supplementLink["targetPrefix"];
+        let isUnique = supplementLink["isUnique"]; 
+        if(!isUnique) {
+            let apiUrl = supplementLink["apiUrl"];
+            // find proxy anchor-id as #target:
+            for (const [key, value] of Object.entries(supplementLinks)) {
+                if (value.isUnique == true && value.apiUrl === apiUrl) {
+                    refAnchorId = value.refAnchorId;
+                }
+            };
+        };
+        // set #target as href-attribute to anchor:
+        anchor.href = "#target-" + targetPrefix + "-" + refAnchorId;
+    });
+
+    // exclude duplicates:
+    let supplementLinksFiltered = supplementLinks
+        .filter(supplementLink => supplementLink.isUnique == true);
+    return(supplementLinksFiltered);
 }
 
 /**
@@ -1257,7 +1314,7 @@ function displayArachneData(values) {
         // create object-image
         if (data.images && data.images.length) {
             let url = "https://arachne.dainst.org/data/image/" + data.images[0].imageId;
-            createExternalObjectImage(url, objectVisualization);
+            createExternalObjectImage(url, objectVisualization, "arachne");
         }
         // link to arachne for displaying 3D models:
         else if(data.type === "3D-Modelle") {
@@ -1308,9 +1365,10 @@ function displayFieldData(values) {
             objectVisualization.id = "target-field-" + values["refAnchorId"];
         }
         // create object-image
+        let url;
         if (data.imageSource) {
-            let url = data.imageSource;
-            createExternalObjectImage(url, objectVisualization);
+            url = data.imageSource;
+            createExternalObjectImage(url, objectVisualization, "field");
         }
         else {
             objectVisualization.innerText = "[No images available]";
@@ -1381,7 +1439,7 @@ function createExternalObjectElement(source) {
  * @returns {void} reads image data as dataUrl (base64-format) 
  * and appends it to the objectVisualization container
  */
-async function createExternalObjectImage(url, objectVisualization) {
+async function createExternalObjectImage(url, objectVisualization, fetchBar) {
 
     let objectImage = document.createElement("img");
     objectImage.classList.add("object-image");
@@ -1396,15 +1454,20 @@ async function createExternalObjectImage(url, objectVisualization) {
     .then((blob) => {
         let reader = new FileReader();
         reader.readAsDataURL(blob); 
+        reader.onloadstart = function() {
+            let fetchState = "[...Fetching data from: " + url + "]...";
+            objectVisualization.innerText = fetchState;
+        }
         reader.onloadend = function() {
             base64data = reader.result;                
             objectImage.src = base64data;
             objectImage.onload = function () {
                 scaleImage(objectImage);
             };
+            objectVisualization.innerText = "";
             objectVisualization.appendChild(objectImage);
         }
-    })
+    });
 }
 
 
