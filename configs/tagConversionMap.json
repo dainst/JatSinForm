@@ -134,7 +134,7 @@
             "obligatory": false
         },
         "boxed-text": {
-            "tagName": "div",
+            "tagName": "p",
             "className": "boxed-text",
             "obligatory": false
         },
