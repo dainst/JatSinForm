@@ -43,7 +43,7 @@ body {
     height: 100vh;
     display:flex;
     background: var(--background-url) #ffffff; 
-    background-blend-mode: luminosity;
+    background-blend-mode: var(--cover-blend-mode);
     background-size:65%;
 }
 
@@ -67,7 +67,8 @@ body {
 #content-body {
     padding: 4%;
     background: var(--content-background);
-    box-shadow: -1px 5px 14px 0px #756f6f;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
 }
 
 #nav-header {
@@ -127,14 +128,22 @@ span.fa {
     width:2.25rem;
 }
 
-footer {
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  background-color: var(--journal-color);
-  color: white;
-  text-align: center;
+a#back-to-top {
+    position: fixed;
+    bottom: 1%;
+    left: 1.5%;
+    z-index: 99;
+    border: 1px solid white;
+    background-color: var(--journal-color);
+    color: white;
+    cursor: pointer;
+    padding: 5px 15px;
+    border-radius: 10px;
+    font-size: 1.5rem;
+}
+
+a#back-to-top:before {
+    content: "\2191";
 }
 
 /* Sections and Headlines
@@ -215,7 +224,7 @@ p[id] {
     color: var(--content-text-color);
     font-size: 1rem;
     font-weight: 300;
-    line-height: 1.75;
+    line-height: 1.6;
     margin-bottom: 2%;
     text-align: justify;
     word-spacing: -0.05rem;
@@ -957,6 +966,10 @@ img.inline-graphic {
     margin: 3% 0 2% 0;
 }
 
+#source-link-imprint {
+    margin: 1% 0;
+}
+
 #source-link-imprint > #doi-anchor {
     color: rgb(23 94 139);
     text-decoration: underline;
@@ -1205,7 +1218,7 @@ details[open] summary::before {
     p[id] {
         font-size: 0.9rem;
         font-weight: 300;
-        line-height: 1.9;
+        line-height: 1.6;
         margin-bottom: 2%;
         word-spacing: 0;
         hyphens: none;
@@ -1217,6 +1230,11 @@ details[open] summary::before {
 
     ::-webkit-scrollbar {
         display: none;
+    }
+
+    a#back-to-top {
+        bottom: 1%;
+        left: 90%;
     }
 }
 

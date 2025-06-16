@@ -30,6 +30,10 @@ body {
     font-style: italic;
  }
 
+ section {
+   column-count: 1 !important;
+ }
+
  p[id] {
     text-align: justify;
  }
@@ -40,6 +44,10 @@ body {
 
  figure {
     margin: 0;
+ }
+
+ img {
+   width: 100%;
  }
 
  div.footnote {
@@ -55,4 +63,12 @@ body {
 
 .internal-index-summary {
    display:none
+}
+
+details {
+   margin: 1% 0;
+}
+
+.map {
+   display: none;
 }

@@ -597,6 +597,10 @@ span.footnote {
     clear:both;
 }
 
+.boxed-text.first-element {
+    margin-top:0;
+}
+
 
 /* endnotes-section
 ---------------------*/
@@ -767,6 +771,14 @@ span.footnote {
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
     text-align: left;
+}
+
+.publisher {
+    margin-top: 5mm;
+}
+
+.publisher-name {
+    margin:0;
 }
 
 .publisher > p {
