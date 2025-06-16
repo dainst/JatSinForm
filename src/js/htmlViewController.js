@@ -13,11 +13,6 @@ const htmlViewScriptLibrary = {
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css",
         "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css",
     },
-    "mediumZoom": {
-        "type": "text/javascript",
-        "src-remote": "https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js",
-        "src-local": "https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js"
-    },
     "leaflet": {
         "type": "text/javascript",
         "src-remote": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
@@ -50,7 +45,7 @@ const htmlViewScriptLibrary = {
 
         // add third-party libraries and stylesheets:
         if(isSingleHTMLFile) {
-            addScriptToDocumentHead("highlightJs");
+            // addScriptToDocumentHead("highlightJs");
             addScriptToDocumentHead("highlightJsCss");
             addScriptToDocumentHead("leaflet");
             addScriptToDocumentHead("leafletCss");
@@ -85,6 +80,11 @@ const htmlViewScriptLibrary = {
                         document.querySelector("#main-wrapper").style.transition = "all 5s";
                 });
             }
+            // observe text-content-wrapper:
+            const observer = new ResizeObserver(function(event) {
+                adjustColumnLayoutBasedOnWrapperWidth(event);
+            });
+            observer.observe(document.querySelector('#text-content-wrapper'));
         }, 500);
     }
 });
@@ -384,5 +384,25 @@ function addScriptToDocumentHead(scriptName) {
     }
 }
 
+ /**
+ * adjust column layout of text-content-wrapper when resizing
+ * @param {JSON} event: oberserver event object 
+ * @returns {void} changes display of sections in DOM by assigning
+ * css-properties (column-count)
+ * 
+ */
+ function adjustColumnLayoutBasedOnWrapperWidth(event) {
 
+    let wrapper = event[0].target;
+    let selector = "section[level='1']";
+    let sectionElements = document.querySelectorAll(selector);
+    sectionElements.forEach(section => {
+        if(wrapper.clientWidth <= 1000) {
+            section.style ="column-count:1";
+        }
+        else {
+            section.style ="column-count:2";
+        }
+    });
+}
 
