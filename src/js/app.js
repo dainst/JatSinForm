@@ -675,9 +675,8 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                         if(xmlElements[i].getAttribute("specific-use")) {
                             let specificUseValue = xmlElements[i].getAttribute("specific-use");
                             newElement.setAttribute("data-specific-use", specificUseValue);
-                        }
+                        } else {newElement.target = "_blank";}
                         newElement.href = (refValue) ? (refValue).trim() : "";
-                        newElement.target = "_blank";
                     // internal id-links:
                     } else {
                         newElement.href = (refValue) ? "#" + (refValue).trim() : "";
@@ -1043,15 +1042,23 @@ function downloadHTMLDocument() {
             document.addEventListener("readystatechange", (event) => {
                if (event.target.readyState === "interactive") {
                   if(noJs) {
-                     const errorConsole = document.createElement("div");
-                     errorConsole.id = "error-message";
-                     errorConsole.innerHTML = "Oops, there was a problem loading external scripts from the internet." +
-                     " The document is entirely readable but might have reduced functionalities." +
-                     " Please visit the source address by following the given link!"
-                     window.document.body.prepend(errorConsole);
-                      // remove linked css stylesheet as well:
+                    const errorConsole = document.createElement("div");
+                    errorConsole.id = "error-message";
+                    errorConsole.innerHTML = "<span>&#9432;</span> There was a problem loading external scripts from the internet." +
+                    " The document is entirely readable but might have reduced functionalities." +
+                    " Please visit the source address by following the DOI link!"
+                    window.document.body.prepend(errorConsole);
+                    // remove linked css stylesheet as well:
                     if(document.querySelector("link") !== null) {
                         document.querySelector("link").remove();
+                    }
+                    // remove poster-image:
+                    document.querySelector("#poster-image").remove();
+                    // push toc to top of page:
+                    let pageHeader = document.querySelector('#page-header');
+                    let tocList = document.querySelector('#toc-list');
+                    if(pageHeader !== null && tocList !== null) {
+                        pageHeader.appendChild(tocList);
                     }
                   }
                }
@@ -1075,8 +1082,14 @@ function downloadHTMLDocument() {
     
         if(fallbackStyles) htmlDoc.head.appendChild(fallbackStyles);
 
-        // add main-wrapper to document-body
+        // remove fetchStates:
         let mainWrapper = document.querySelector("#main-wrapper");
+        let fetchStates = mainWrapper.querySelectorAll(".fetch-state");
+        fetchStates.forEach(element => {
+            element.remove();
+        });
+
+        // add main-wrapper to document-body
         htmlDoc.body.innerHTML = mainWrapper.outerHTML;
         htmlDoc.body.classList.add("fade-in");
 
