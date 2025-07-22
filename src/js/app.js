@@ -134,7 +134,7 @@ document.addEventListener("readystatechange", (event) => {
         // switch between pdf and viewer-format:
         if (localStorage.getItem("renderAs") === "PDF") {
             // prevent auto start of pagedJs previewer:
-            window.PagedConfig = { auto: false };
+            window.PagedConfig = { auto: false};
 
             // get view (and journal) specific styles:
             let styleSheetLink = getStyleSheetLink(journalId, "pagedView");
@@ -363,6 +363,7 @@ document.addEventListener('keyup', function (e) {
         }
     }
 });
+
 /** -------------------------------------
  * Process XML document and xml preflight-
  * checks asynchronously
@@ -388,13 +389,12 @@ async function processXmlDocument(xmlDoc) {
     else {articleId = "document-without-id"};
 
     // checkout reload of previous document
-    let documentReloaded = false;
     let documentState = {};
     if (!documentId || documentId !== articleId) {
         documentState["documentId"] = articleId;    // commonly a doi-url
         documentState["scrollPosition"] = [0, 0];   // x- and y-coordinates
         localStorage.setItem("documentState", JSON.stringify(documentState));
-    } else { documentReloaded = true; }
+    };
 
     // get and add language code to html (short form):
     let lang = xmlDoc.querySelector("article").getAttribute("xml:lang");
@@ -420,7 +420,7 @@ async function processXmlDocument(xmlDoc) {
 
     // process image (files):
     updateStorageEventListener("Process image files...");
-    processImageFiles(documentReloaded);
+    processImageFiles();
 
     // validate image to paragraph ratio:
     let paragraphs = document.querySelectorAll(".content-paragraph");
@@ -430,7 +430,7 @@ async function processXmlDocument(xmlDoc) {
         console.warn("Notice for editors:\n" + 
             "This article has more figures than paragraphs [" + 
             figures.length + " to " + paragraphs.length + "].\n" +
-            "A figure-to-paragraph ratio of 1:1 is recommended!")
+            "A figure-to-paragraph ratio of at least 1:1 is recommended!")
     }
 
     // add style related properties to documentRoot:
@@ -543,6 +543,17 @@ function convertXMLToHtmlBody(xmlDoc) {
         codeItems[i].replaceWith(pre);
     }
 
+    // transform content of boxed-text (div) into a p-element
+    let boxedTextItems = xmlDoc.querySelectorAll(".boxed-text");
+    for (let i = 0; i < boxedTextItems.length; i++) {
+        let textElement = boxedTextItems[i].querySelector("p");
+        if(textElement !== null) {
+            textElement.id = boxedTextItems[i].id;
+            textElement.className = boxedTextItems[i].className;
+            boxedTextItems[i].replaceWith(textElement); 
+        }
+    }
+
     // set metaName as element-attribute of custom-meta:
     let customMetaElements =  xmlDoc.querySelectorAll(".custom-meta");
     for (let i = 0; i < customMetaElements.length; i++) {
@@ -552,6 +563,7 @@ function convertXMLToHtmlBody(xmlDoc) {
             metaName.remove();
         }
     }
+
     let textContentElements = xmlBody.querySelectorAll("p,ul,ol,li,table,pre,code,.title");
     generateGenericElementIdsIfMissing(textContentElements);
     createHeadlinesBySectionHierarchy(xmlBody, ".title");
@@ -640,8 +652,8 @@ function removeEmptyElements(xmlBody) {
 
 function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
 
-    let elementsNotFound = [];
     // convert selectors as defined in tagConversionMap:
+    let elementsNotFound = [];
     for (let selector in tagConversionMap) {
         let mapTagName = tagConversionMap[selector]["tagName"];
         let mapClassname = tagConversionMap[selector]["className"];
@@ -816,10 +828,9 @@ Funtions related to image files
 ----------------------------------*/
  /**
  * process images files
- * @param {boolean} documentReloaded: src-xml reloaded (hard reset)
  * @returns {void} converts and classifies img in DOM
  */
-function processImageFiles(documentReloaded) {
+function processImageFiles() {
 
     // query srcImages from document:
     let srcImages = document.querySelectorAll("img"); 
@@ -829,23 +840,20 @@ function processImageFiles(documentReloaded) {
         let newImg = new Image();
         newImg.onload = function () {
             // create base64 image initially:
-            if(!documentReloaded) {
-                // draw canvas image
-                let canvas = document.createElement("canvas");
-                let ctx = canvas.getContext("2d");
-                canvas.width = newImg.width;
-                canvas.height = newImg.height;
-                ctx.drawImage(newImg, 0, 0);
+            let canvas = document.createElement("canvas");
+            let ctx = canvas.getContext("2d");
+            canvas.width = newImg.width;
+            canvas.height = newImg.height;
+            ctx.drawImage(newImg, 0, 0);
 
-                // define dataUrl (data:image/jpeg;base64, ...):
-                let dataUrl = canvas.toDataURL("image/jpeg", 
-                    jpegCompression); // with compression
-                srcImage.src = dataUrl;
+            // define dataUrl (data:image/jpeg;base64, ...):
+            let dataUrl = canvas.toDataURL("image/jpeg", 
+                jpegCompression); // with compression
+            srcImage.src = dataUrl;
 
-                // feedback process state:
-                updateStorageEventListener("Image preloading... "
-                    + srcImage.parentElement.id);
-            }
+            // feedback process state:
+            updateStorageEventListener("Image preloading... "
+                + srcImage.parentElement.id);
 
             // classify each image
             classifyImage(newImg);
@@ -856,6 +864,7 @@ function processImageFiles(documentReloaded) {
             figure.classList = newImg.classList;
             figure.setAttribute("data-img-width", newImg.naturalWidth);
             figure.setAttribute("data-img-height", newImg.naturalHeight);
+
         };
         newImg.onerror = function () {
             srcImage.alt = "Could not convert image: " + newImg.src;
@@ -902,21 +911,6 @@ function defineClassByImageRatio(ratio) {
             break;
     }
     return (ratioClass);
-}
-
-function scaleImage(img) {
-
-    let natWidth = img.naturalWidth;
-    let natHeight = img.naturalHeight;
-    let targetHeight = document.documentElement.clientHeight * 0.9;
-    let targetWidth = document.documentElement.clientWidth * 0.5;
-
-    if(natHeight > targetHeight) {
-        img.style = "max-width:max-content;max-height:" + targetHeight + "px;";
-    }
-    else if(natWidth < targetWidth) {
-        img.style = "max-height:max-content;max-width:" + natWidth + "px;";
-    }
 }
 
 function getPosterImageBackgroundUrl() {
@@ -1072,22 +1066,25 @@ function downloadHTMLDocument() {
             fallbackStyles.id = "fallback-styles";
             fallbackStyles.textContent = localStorage.getItem("viewer-fallback-styles");
         }
+
+        // viewer script paths (provisionary)
+        const viewControllerPath = "https://publications.test.dainst.org/jatsinform/src/js/htmlViewController.js";
+        const viewerCssPath = "https://publications.test.dainst.org/jatsinform/src/css/viewer-styles.css" 
+
         // define document-head
         htmlDoc.head.innerHTML = 
         " <meta name='title' content='a title'>" +
         " <meta name='description' content='cite by...'>" +
         "  <script>" + fallbackScript + "</script>" +
-        "  <script type='text/javascript' onerror='this.onerror=null;fallback(true);' src='src/js/htmlViewController.js'></script>" +
-        "  <link type='text/css' rel='stylesheet' onerror='this.onerror=null;fallback(false)' href='src/css/viewer-styles.css'>";
+        "  <script type='text/javascript' onerror='this.onerror=null;fallback(true);' src='" + viewControllerPath + "'></script>" +
+        "  <link type='text/css' rel='stylesheet' onerror='this.onerror=null;fallback(false)' href='" + viewerCssPath + "'>";
     
         if(fallbackStyles) htmlDoc.head.appendChild(fallbackStyles);
 
         // remove fetchStates:
         let mainWrapper = document.querySelector("#main-wrapper");
         let fetchStates = mainWrapper.querySelectorAll(".fetch-state");
-        fetchStates.forEach(element => {
-            element.remove();
-        });
+        fetchStates.forEach(element => {element.remove();});
 
         // add main-wrapper to document-body
         htmlDoc.body.innerHTML = mainWrapper.outerHTML;
