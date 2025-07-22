@@ -358,7 +358,6 @@ function getAbstractSection(contentBody) {
           
             // create abstract elements view:
             if(abstractTextElement !== null) {
-              
                 if(abstractLang !== null) {
                     // add lang:attribute to abstract text element:
                     abstractTextElement.setAttribute("lang", abstractLang);
@@ -443,6 +442,7 @@ function createContentPanels(contentBody) {
  * @returns {HTMLElement} zenonLink: new anchor element
  */
 function createZenonLink(zenonReference) {
+    
     let zenonLink;
     if(zenonReference !== null) {
         zenonLink = document.createElement("a");
@@ -1468,6 +1468,21 @@ async function createExternalObjectImage(url, objectVisualization, fetchBar) {
             objectVisualization.appendChild(objectImage);
         }
     });
+}
+
+function scaleImage(img) {
+
+    let natWidth = img.naturalWidth;
+    let natHeight = img.naturalHeight;
+    let targetHeight = document.documentElement.clientHeight * 0.9;
+    let targetWidth = document.documentElement.clientWidth * 0.5;
+
+    if(natHeight > targetHeight) {
+        img.style = "max-width:max-content;max-height:" + targetHeight + "px;";
+    }
+    else if(natWidth < targetWidth) {
+        img.style = "max-height:max-content;max-width:" + natWidth + "px;";
+    }
 }
 
 
