@@ -209,7 +209,7 @@ p {
     word-wrap: break-word;
     overflow-wrap: break-word;
     widows: 3;
-    orphans: 3;
+    orphans: 2;
 }
 
 .paragraph-counter {
@@ -233,7 +233,7 @@ span.text-medium {
 }
 
 ul.list, ol.list {
-    margin: 0;
+    margin-top: 2.5mm;
 }
 
 ul.list {
@@ -254,6 +254,8 @@ li {
     -ms-hyphens: auto;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    widows: 3;
+    orphans: 2;
 }
 
 p.signature {
@@ -299,6 +301,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .main-title.first-element {
     padding-top:0;
+    margin-top:0;
 }
 
 .section-title {
@@ -385,7 +388,7 @@ table {
     font-size: 9pt;
     line-height: var(--line-height);
     border: 1px solid #ededed;
-    clear:both;
+    /* clear:both; */
 }
 
 tr {
@@ -600,7 +603,6 @@ span.footnote {
 .boxed-text.first-element {
     margin-top:0;
 }
-
 
 /* endnotes-section
 ---------------------*/
