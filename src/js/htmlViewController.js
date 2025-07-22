@@ -394,14 +394,17 @@ function addScriptToDocumentHead(scriptName) {
  function adjustColumnLayoutBasedOnWrapperWidth(event) {
 
     let wrapper = event[0].target;
-    let selector = "section[level='1']";
+    let selector = "section";
     let sectionElements = document.querySelectorAll(selector);
     sectionElements.forEach(section => {
+        let sectionLevel = section.getAttribute("level");
         if(wrapper.clientWidth <= 1000) {
             section.style ="column-count:1";
         }
-        else {
-            section.style ="column-count:2";
+        if(wrapper.clientWidth > 1000) {
+            if(sectionLevel <= 2) {
+                section.style ="column-count:2";
+            }
         }
     });
 }
