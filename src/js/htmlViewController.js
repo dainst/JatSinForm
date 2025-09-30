@@ -67,7 +67,7 @@ const htmlViewScriptLibrary = {
         setTimeout(() => {
             // highlight anchor targets:
             let anchors = document.querySelectorAll(
-                "a.fig-ref,a.bib-ref,a.fn-ref,a.ext-ref,a.box-ref,a.index-ref");
+                "a.fig-ref,a.bib-ref,a.fn-ref,a.box-ref,a.index-ref");
             highlightAnchorTargets(anchors);
             // observe text-content-wrapper:
             const observer = new ResizeObserver(function(event) {
