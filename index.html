@@ -12,13 +12,20 @@
       <script>
          // xml-document related constants:
          const xmlFromEditor = false; // load editor-xml from localStorage
-         const xmlFolder = "xml-documents" // path to xml
+         const xmlFolder = "xml-documents-dev" // path to xml
 
          // all views related:
-         const jpegCompression = 0.5; // 1 = without compression
+         const base64ImgConversion = false;
+         const imgQuality = 0.5; // 1 = without compression
          const checkUrlPersistence = false;
-         const addDocumentIndex = true;
+         const addStatsSection = true;
 
+         // cover design related:
+         const coverImageId = "f-1"; // e.g. "poster-image", "f-1", "f-2"
+         const backgroundPosition = "center";
+         const backgroundBlendMode = "overlay";
+         const backgroundBlendColor = "#393c47";
+ 
          // pdf view related:
          const pagesFlexDirection = "row"; // "row" or "column"
          const firstTextPageId = "page-2";
@@ -30,7 +37,7 @@
          const maxCaptionLength = 1000;
          const setEndnotes = false;
          const createToC = false;
-         const devMode = false;
+         const devMode = true;
          const setAllFigures = false;
          const setNoFigures = false;
 
@@ -38,14 +45,14 @@
          const titlesOfAppendices = {
             "contents": {
                "de": "Inhalt",
-               "en": "Corntents",
+               "en": "Contents",
                "fr": "Table des matières",
                "it": "Sommario",
                "sp": "Tabla de contenido",
                "es": "Tabla de contenido"
             },
             "authorDetails": {
-               "de": "Autorendaten",
+               "de": "Autoren/innen",
                "en": "Authors",
                "fr": "Auteurs",
                "it": "Autori",
@@ -93,6 +100,6 @@
             "sp": "con contribuciones del",
             "es": "con contribuciones del"
          };
-      </script>
+     </script>
    </body>
 </html>
