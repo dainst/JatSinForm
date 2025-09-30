@@ -122,16 +122,11 @@ panelWrapper.classList.add("column");
         document.body.appendChild(main);
         createPanelNavigation(navigationPanelsDocument);
 
-        // add stats panel:
-        if(addStatsPanel) {
+        // add stats section:
+        if(addStatsSection) {
             let statsSection = createDocumentStats(numSupplements);
             let panelContents = document.querySelector("#contents");
             panelContents.appendChild(statsSection);
-
-            /*
-            let panelStats = createPanel("stats", "Document Statistics", statsSection);
-            panelWrapper.appendChild(panelStats);
-            */
         }
 
         // define image scaling:

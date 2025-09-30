@@ -714,7 +714,7 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                         if(xmlElements[i].getAttribute("specific-use")) {
                             let specificUseValue = xmlElements[i].getAttribute("specific-use");
                             newElement.setAttribute("data-specific-use", specificUseValue);
-                            // ext-link as external web-link:
+                            // ext-link as external:
                             if(specificUseValue == "weblink")  {
                                 newElement.target = "_blank";
                                 newElement.rel="noopener noreferrer";
@@ -1044,7 +1044,7 @@ async function downloadHTMLDocument() {
     progressBar.style.display = "block";
 
     // convert images *before* cloning/exporting
-    if(base64Img) {
+    if(base64ImgConversion) {
         const body = document.querySelector('body');
         await convertAllImagesToWebPBase64(body, {
             // exclude supplement images (already base64encoded)
