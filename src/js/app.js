@@ -509,7 +509,7 @@ async function preflightXmlRequest(xmlDoc) {
             }
         }
     }
-    // valid (x)ref (r)ids for valid ids (e.g. without whitespace)
+    /* valid (x)ref (r)ids for valid ids (e.g. without whitespace)
     const idPattern = /^[A-Za-z][A-Za-z0-9._:-]*$/; 
     let xrefs = xmlDoc.querySelectorAll("xref[rid]");
     xrefs.forEach(xref => {
@@ -524,6 +524,7 @@ async function preflightXmlRequest(xmlDoc) {
             }
         }
     });
+    */
     
     return(false);
 }
