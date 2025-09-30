@@ -134,7 +134,7 @@
             "obligatory": false
         },
         "boxed-text": {
-            "tagName": "div",
+            "tagName": "aside",
             "className": "boxed-text",
             "obligatory": false
         },
@@ -144,28 +144,28 @@
             "obligatory": false
         },
         "ref": {
-            "tagName": "div",
+            "tagName": "li",
             "className": "reference",
             "setAttribute": "translate",
             "obligatory": false
         },
         "fn": {
-            "tagName": "div",
+            "tagName": "li",
             "className": "footnote",
             "obligatory": false
         },
         "#images-container": {
-            "tagName": "div",
+            "tagName": "section",
             "className": "figure-section",
             "obligatory": false
         },
         "fn-group": {
-            "tagName": "div",
+            "tagName": "section",
             "className": "footnotes-section",
             "obligatory": false
         },
         "ref-list": {
-            "tagName": "div",
+            "tagName": "section",
             "className": "reference-section",
             "obligatory": false
         },
@@ -213,7 +213,6 @@
         "contrib-group": {
             "tagName": "div",
             "className": "contrib-group",
-            "setAttribute": "content-type",
             "obligatory": false
         },
         "role": {
@@ -306,7 +305,7 @@
         },
         "isbn": {
             "tagName": "p",
-            "className": "issn",
+            "className": "isbn",
             "setAttribute": "publication-format",
             "obligatory": false
         },
@@ -321,7 +320,7 @@
             "obligatory": false
         },
         "publisher-loc": {
-            "tagName": "div",
+            "tagName": "address",
             "className": "publisher-loc",
             "obligatory": false
         },
@@ -348,27 +347,31 @@
         "article-id": {
             "tagName": "p",
             "className": "article-id",
+            "metaTitle": "Article-ID",
             "setAttribute": "pub-id-type",
             "obligatory": true
+        },
+        "article-title": {
+            "tagName": "p",
+            "className": "article-title",
+            "metaTitle": "Title",
+            "obligatory": true
+        },
+        "subtitle": {
+            "tagName": "p",
+            "className": "article-subtitle",
+            "metaTitle": "Subtitle",
+            "obligatory": false
         },
         "title-group": {
             "tagName": "div",
             "className": "title-group",
             "obligatory": true
         },
-        "article-title": {
-            "tagName": "p",
-            "className": "article-title",
-            "obligatory": true
-        },
-        "subtitle": {
-            "tagName": "p",
-            "className": "subtitle",
-            "obligatory": false
-        },
         "pub-date": {
             "tagName": "p",
             "className": "pub-date",
+            "metaTitle": "Publishing Date",
             "setAttribute": "pub-type",
             "obligatory": false
         },
@@ -390,23 +393,14 @@
         "volume": {
             "tagName": "p",
             "className": "volume",
-            "obligatory": false
-        },
-        "permissions": {
-            "tagName": "div",
-            "className": "permissions",
+            "metaTitle": "Volume",
             "obligatory": false
         },
         "copyright-statement": {
-            "tagName": "div",
-            "className": "copyright-statement",
-            "setAttribute": "content-type",
-            "obligatory": false
-        },
-        "license": {
             "tagName": "p",
-            "className": "license",
-            "setAttribute": "license-type",
+            "className": "copyright-statement",
+            "metaTitle": "Copyright",
+            "setAttribute": "content-type",
             "obligatory": false
         },
         "license-p": {
@@ -415,9 +409,22 @@
             "setAttribute": "content-type",
             "obligatory": false
         },
+        "license": {
+            "tagName": "div",
+            "className": "license",
+            "metaTitle": "License",
+            "setAttribute": "license-type",
+            "obligatory": false
+        },
+        "permissions": {
+            "tagName": "div",
+            "className": "permissions",
+            "obligatory": false
+        },
         "self-uri": {
             "tagName": "p",
             "className": "self-uri",
+            "metaTitle": "Self-URI",
             "setAttribute": "content-type",
             "obligatory": false
         },

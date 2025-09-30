@@ -55,16 +55,13 @@ const htmlViewScriptLibrary = {
         // remove fallback-styles:
         let fallbackStyles = document.querySelector("#fallback-styles");
         if(fallbackStyles !== null) {fallbackStyles.remove();}
-
-        // add poster image as background image:
-        let posterImage = document.querySelector("#poster-image > img");
-        let mainWrapper = document.querySelector("#main-wrapper");
-        let backgroundStyles = "background: url(" + posterImage.src + ") #ffffff; " +
-        "background-blend-mode: luminosity; background-size:65%;"
-        mainWrapper.style = backgroundStyles;
     }
 
     if (event.target.readyState === "complete") {
+
+        if(document.querySelector("#progress-bar") !== null) {
+            document.querySelector("#progress-bar").style.display = "none";
+        }
         focusTocTargetsOnHoverSection();
         showSelectedPanel("contents");
         setTimeout(() => {
@@ -72,14 +69,6 @@ const htmlViewScriptLibrary = {
             let anchors = document.querySelectorAll(
                 "a.fig-ref,a.bib-ref,a.fn-ref,a.ext-ref,a.box-ref,a.index-ref");
             highlightAnchorTargets(anchors);
-            // add background-image moving effect:
-            if(document.querySelector("#abstract-navigation") !== null) {
-                document.querySelector("#abstract-navigation")
-                    .addEventListener("mouseover", event => {
-                        document.querySelector("#main-wrapper").style.backgroundSize = "80%";
-                        document.querySelector("#main-wrapper").style.transition = "all 5s";
-                });
-            }
             // observe text-content-wrapper:
             const observer = new ResizeObserver(function(event) {
                 adjustColumnLayoutBasedOnWrapperWidth(event);
@@ -99,11 +88,11 @@ const htmlViewScriptLibrary = {
  */
 function showSelectedPanel(selectedPanel) {
 
-    let panelAnchors = document.querySelectorAll(".panel-anchors");
+    let panelAnchors = document.querySelectorAll(".panel-buttons");
     panelAnchors.forEach((panelAnchor) => {
         let panelName = panelAnchor.id.slice(2); 
         let panel = document.querySelector("#" + panelName);
-  
+
         if(selectedPanel && panel !== null) {
             if(panelName === selectedPanel) {
                 // highlight anchor in nav.panel
@@ -111,7 +100,7 @@ function showSelectedPanel(selectedPanel) {
                 panel.classList.replace("hidden", "active");
           
                 // initMaps during panel-display:
-                if(selectedPanel === "locations") {
+                if(selectedPanel === "gazetteer") {
                     setTimeout(initMaps(".map"), 500);
                 }
             }
@@ -121,36 +110,6 @@ function showSelectedPanel(selectedPanel) {
             }
         };
     });
-}
-
- /**
- * open abstract box (navigation)
- * @param {JSON} event: onclick event object 
- * @returns {void} changes display of related elements in DOM by assigning
- * classes and css-style-properties
- */
-function openAbstractBox(event) {
-
-    // define ids, states and selected box:
-    let boxId = event.target.textContent;
-    let isActive = (/active/.test(event.target.className)) ? true : false;
-    let selectedBox = document.querySelector("#" + boxId);
-
-    // get all boxes and btns from DOM
-    let allBoxes = document.querySelectorAll(".abstract-box");
-    let allBtns = document.querySelectorAll(".abstract-button");
-
-    // remove classes for all btns and boxes:
-    allBtns.forEach(btn => {btn.classList.remove("active");});
-    allBoxes.forEach(box => {box.style.display = "none";});
-
-    // open box selected:
-    if(!isActive) {
-        event.target.classList.add("active");
-        selectedBox.style.display = "block";
-    }
-    // close selected box if active already:
-    else {selectedBox.style.display = "none";}
 }
 
  /**
@@ -221,7 +180,7 @@ function createMap(mapId, coordinates) {
  /**
  * focus toc-targets when hover over section
  * @returns {void} classes of targeted toc elements will be changed
- * if the come into viewport (detected by intersection observer)
+ * if the element comes into viewport (detected by intersection observer)
  */
 function focusTocTargetsOnHoverSection() {
 
@@ -251,12 +210,14 @@ function focusTocTargetsOnHoverSection() {
                          behavior: "smooth",
                          block: "center"
                      });
+                     target.ariaCurrent = true;
                  }
             } 
             // element leaves the viewport (at top)
             else {
                 if(target !== null) {
                     target.classList.remove('active');
+                    target.ariaCurrent = false;
                 }
             }
         }, options);
@@ -276,9 +237,10 @@ function focusTocTargetsOnHoverSection() {
  * targets itself (by scrollIntoView and css-classes)
  */
 function highlightAnchorTargets(anchors) {
+    
     let targetRef;
     let targetPanelName;
-
+    
     if(anchors !== undefined && anchors.length) {
         anchors.forEach((anchor) => {
             // when clicked
@@ -295,7 +257,7 @@ function highlightAnchorTargets(anchors) {
                 } else {target = null;}
 
                 if(target !== null) {
-                     // give panel a bit of time to change
+                    // give panel a bit of time to change
                     setTimeout(() => { 
                         target.classList.toggle('active');
                         target.classList.add('highlight');
@@ -305,6 +267,11 @@ function highlightAnchorTargets(anchors) {
                         });
                     }, 500);
                 }
+                // correct overjump (phantom whitespace) in case of bottom-targets:
+                setTimeout(() => {
+                    window.scrollBy(0, -500);
+                }, 1000);
+            
                 // reset the color after a short delay
                 setTimeout(() => {
                     target.classList.remove("highlight");
@@ -335,7 +302,7 @@ function definePanelNameByTargetId(targetId) {
             panelName = "references";
             break;
         case (/#target-gazetteer/.test(targetId)):
-            panelName = "locations";
+            panelName = "gazetteer";
             break;
         case (/#target-arachne/.test(targetId)):
             panelName = "arachne";
@@ -394,7 +361,7 @@ function addScriptToDocumentHead(scriptName) {
  function adjustColumnLayoutBasedOnWrapperWidth(event) {
 
     let wrapper = event[0].target;
-    let selector = "section";
+    let selector = " #content-body > section";
     let sectionElements = document.querySelectorAll(selector);
     sectionElements.forEach(section => {
         let sectionLevel = section.getAttribute("level");
@@ -408,4 +375,6 @@ function addScriptToDocumentHead(scriptName) {
         }
     });
 }
+
+
 

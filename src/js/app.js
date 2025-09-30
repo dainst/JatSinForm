@@ -28,11 +28,6 @@ const scriptLibrary = {
         "src-remote": "https://unpkg.com/pagedjs/dist/paged.polyfill.js",
         "src-local": "src/js/pagedJs.js"
     },
-    "qrCodeJs": {
-        "type": "text/javascript",
-        "src-remote": "https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js",
-        "src-local": "https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"
-    },
     "highlightJs": {
         "type": "text/javascript",
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
@@ -62,19 +57,21 @@ const scriptLibrary = {
 const defaultJournal = "AA";
 const urlRegex = /doi|handle|urn|ark:|orcid|ror|dainst|idai.world|wikipedia/g;
 const specificUseRegex = "zenon|extrafeatures|supplements";
-const navIcons = {
-    "contents": "<span class='fa fa fa-list'></span>",
-    "figures": "<span class='fa fa-image'></span>",
-    "notes": "<span class='fa fa-list-ol'></span>",
-    "references": "<span class='fa fa-book'></span>",
-    "locations": "<span class='fa fa-map'></span>",
-    "arachne": "<span class='fa fa-database'></span>",
-    "field": "<span class='fa fa-database'></span>",
-    "metadata": "<span class='fa fa-info'></span>"
 
+const navIcons = {
+    "contents": "<span class='fa fa fa-list' aria-hidden='true'></span>",
+    "figures": "<span class='fa fa-image' aria-hidden='true'></span>",
+    "notes": "<span class='fa fa-list-ol' aria-hidden='true'></span>",
+    "references": "<span class='fa fa-book' aria-hidden='true'></span>",
+    "gazetteer": "<span class='fa fa-map' aria-hidden='true'></span>",
+    "arachne": "<span class='fa fa-database' aria-hidden='true'></span>",
+    "field": "<span class='fa fa-database' aria-hidden='true'></span>",
+    "metadata": "<span class='fa fa-info' aria-hidden='true'></span>",
+    "stats": "<span class='fa fa-bar-chart' aria-hidden='true'></span>"
 }
+
 const progressBar = document.createElement("div");
-progressBar.id = "progressBar";
+progressBar.id = "progress-bar";
 
 const errorConsole = document.createElement("div");
 errorConsole.innerHTML = "<h3>Critical error found:</h3>";
@@ -84,6 +81,11 @@ const faviconLink = document.createElement("link");
 faviconLink.type = 'image/png';
 faviconLink.rel = 'icon';
 faviconLink.href = "/src/css/assets/graphics/greif.png";
+
+const systemNotice = {
+    "html": "This HTML format was created with <a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank'> JatSinForm</a>.",
+    "pdf": "This PDF was created with <a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank'> JatSinForm</a>."
+ }
 
 /** -------------------
  * -------------------
@@ -99,7 +101,6 @@ document.addEventListener("readystatechange", (event) => {
         document.head.appendChild(faviconLink);
 
         // add third-party libraries and stylesheets:
-        addScriptToDocumentHead("qrCodeJs");
         addScriptToDocumentHead("highlightJs");
         addScriptToDocumentHead("highlightJsCss");
         addScriptToDocumentHead("leaflet");
@@ -198,9 +199,7 @@ document.addEventListener("readystatechange", (event) => {
 
 function initProgressBar(processStage) {
 
-    progressBar.style.fontFamily = "UI-MONOSPACE";
-    progressBar.style.fontSize = "0.9em";
-    progressBar.style.padding = "1%";
+    progressBar.style.cssText = "position:fixed;right:1rem;bottom:1rem;padding:.5rem 1rem;background:#0008;color:#fff;border-radius:.5rem;font:14px/1.4 system-ui;";
 
     if (processStage === "Ready") {
         progressBar.innerHTML = processStage + "!";
@@ -413,6 +412,11 @@ async function processXmlDocument(xmlDoc) {
     let htmlContentBody = convertXMLToHtmlBody(xmlDoc);
     document.body.innerHTML = htmlContentBody.outerHTML;
 
+    // remove xml-namespaces:
+    document.querySelectorAll('[xmlns]').forEach(el => {
+        el.removeAttribute('xmlns');
+    });
+
     // add documentLang as lang:attribute:
     if(localStorage.getItem("documentLang") !== null) {
         document.documentElement.lang = localStorage.getItem("documentLang");
@@ -435,9 +439,12 @@ async function processXmlDocument(xmlDoc) {
 
     // add style related properties to documentRoot:
     let documentRoot = document.querySelector(':root');
-    documentRoot.style.setProperty('--journal-color', journalColor);
-    documentRoot.style.setProperty('--background-url', getPosterImageBackgroundUrl());
     documentRoot.style.setProperty('--pages-flex-direction', pagesFlexDirection);
+    documentRoot.style.setProperty('--journal-color', journalColor);
+    documentRoot.style.setProperty('--background-url', getCoverImageBackgroundUrl(coverImageId));;
+    documentRoot.style.setProperty('--background-position', backgroundPosition);
+    documentRoot.style.setProperty('--background-blend-mode', backgroundBlendMode);
+    documentRoot.style.setProperty('--background-blend-color', backgroundBlendColor);
 }
 
 async function preflightXmlRequest(xmlDoc) {
@@ -502,6 +509,22 @@ async function preflightXmlRequest(xmlDoc) {
             }
         }
     }
+    // valid (x)ref (r)ids for valid ids (e.g. without whitespace)
+    const idPattern = /^[A-Za-z][A-Za-z0-9._:-]*$/; 
+    let xrefs = xmlDoc.querySelectorAll("xref[rid]");
+    xrefs.forEach(xref => {
+        if (xref.getAttribute("rid") !== null) {
+            // must start with a letter, then letters/digits/
+            if (!idPattern.test(xref.getAttribute("rid"))) {
+                console.log("invalid",xref.getAttribute("rid") )
+                errorText = "Invalid rid: " + xref.getAttribute("rid") + 
+                    ": No whitespace allowed. Must always start with letter!";
+                errorConsole.append(errorText);
+                return(errorConsole);
+            }
+        }
+    });
+    
     return(false);
 }
 
@@ -517,6 +540,13 @@ function convertXMLToHtmlBody(xmlDoc) {
     let xmlBody = xmlDoc.getElementsByTagName("body")[0];
     let xmlFront = xmlDoc.getElementsByTagName("front")[0];
     let xmlBack = xmlDoc.getElementsByTagName("back")[0];
+
+    // save xml-front in localStorage:
+    const serializer = new XMLSerializer();
+    let xmlFrontString = serializer.serializeToString(xmlFront);
+    localStorage.setItem("xml-front", xmlFrontString);
+    let jsonLD = mapJATSFrontToScholarlyArticle(xmlFrontString, json = {});
+    localStorage.setItem("json-LD", JSON.stringify(jsonLD));
 
     // add xml <front> as preformatted code to html-element:
     addXMLFrontCodePreformattedToHTML(xmlFront);
@@ -541,17 +571,6 @@ function convertXMLToHtmlBody(xmlDoc) {
         code.innerHTML = codeItems[i].innerHTML;
         pre.appendChild(code)
         codeItems[i].replaceWith(pre);
-    }
-
-    // transform content of boxed-text (div) into a p-element
-    let boxedTextItems = xmlDoc.querySelectorAll(".boxed-text");
-    for (let i = 0; i < boxedTextItems.length; i++) {
-        let textElement = boxedTextItems[i].querySelector("p");
-        if(textElement !== null) {
-            textElement.id = boxedTextItems[i].id;
-            textElement.className = boxedTextItems[i].className;
-            boxedTextItems[i].replaceWith(textElement); 
-        }
     }
 
     // set metaName as element-attribute of custom-meta:
@@ -657,6 +676,7 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
     for (let selector in tagConversionMap) {
         let mapTagName = tagConversionMap[selector]["tagName"];
         let mapClassname = tagConversionMap[selector]["className"];
+        let metaTitle = tagConversionMap[selector]["metaTitle"];
 
         // process each selector
         if (xmlBody.querySelectorAll(selector).length !== 0) {
@@ -668,7 +688,13 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                 // transfer ids and classnames of xml-elements:
                 if (xmlElements[i].className) {newElement.classList.add(xmlElements[i].className);}
                 if (xmlElements[i].id) {newElement.id = xmlElements[i].id;}
-                
+
+                // transfer metaTitles as data-attribute:
+                if (metaTitle) {newElement.setAttribute("data-meta-title", metaTitle)};
+                if (selector == "license-p") {
+                    let contentType = xmlElements[i].getAttribute("content-type");
+                    if(contentType !== null) {newElement.setAttribute("data-meta-title", contentType)};
+                }
                 // add new defined classnames in tagConversionMap
                 if (mapClassname) {newElement.classList.add(mapClassname);}
 
@@ -687,7 +713,15 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                         if(xmlElements[i].getAttribute("specific-use")) {
                             let specificUseValue = xmlElements[i].getAttribute("specific-use");
                             newElement.setAttribute("data-specific-use", specificUseValue);
-                        } else {newElement.target = "_blank";}
+                            // ext-link as external web-link:
+                            if(specificUseValue == "weblink")  {
+                                newElement.target = "_blank";
+                                newElement.rel="noopener noreferrer";
+                            }
+                        } else {
+                            newElement.target = "_blank";
+                            newElement.rel="noopener noreferrer";
+                        }
                         newElement.href = (refValue) ? (refValue).trim() : "";
                     // internal id-links:
                     } else {
@@ -708,15 +742,15 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                             attributeValue = "article-contributors";
                         }
                     }
-                    // add translate="no" to reference elements ("Literaturverzeichnis"):
-                    if(selector === "ref") {attributeValue = "no";}
+                    // add translate="no" to defined elements:
+                    if(attributeKey === "translate") {attributeValue = "no";}
                
                     // set attribute to new element:
                     newElement.setAttribute(attributeKey, attributeValue);
                 }
                 // transfer content
                 newElement.innerHTML = xmlElements[i].innerHTML;
-          
+
                 // replace xml-element:
                 xmlElements[i].replaceWith(newElement);
             }
@@ -793,6 +827,7 @@ function createHeadlinesBySectionHierarchy(content, selector) {
         headlines[i].replaceWith(headline);
     }
 }
+
 /** 
  * define headline properties by hierarchy level
  * @param {int} level hierarchy level of title elements, e.g. 1
@@ -828,7 +863,7 @@ Funtions related to image files
 ----------------------------------*/
  /**
  * process images files
- * @returns {void} converts and classifies img in DOM
+ * @returns {void} validates and classifies img in DOM
  */
 function processImageFiles() {
 
@@ -839,18 +874,7 @@ function processImageFiles() {
     srcImages.forEach((srcImage) => {
         let newImg = new Image();
         newImg.onload = function () {
-            // create base64 image initially:
-            let canvas = document.createElement("canvas");
-            let ctx = canvas.getContext("2d");
-            canvas.width = newImg.width;
-            canvas.height = newImg.height;
-            ctx.drawImage(newImg, 0, 0);
-
-            // define dataUrl (data:image/jpeg;base64, ...):
-            let dataUrl = canvas.toDataURL("image/jpeg", 
-                jpegCompression); // with compression
-            srcImage.src = dataUrl;
-
+        
             // feedback process state:
             updateStorageEventListener("Image preloading... "
                 + srcImage.parentElement.id);
@@ -913,17 +937,16 @@ function defineClassByImageRatio(ratio) {
     return (ratioClass);
 }
 
-function getPosterImageBackgroundUrl() {
+function getCoverImageBackgroundUrl(coverImageId) {
 
     let backgroundUrl = false;
-    let posterImage = document.querySelector("#poster-image");
-   
-    if (posterImage) {
-        if(posterImage.firstElementChild.src) {
-            backgroundUrl = "url(" + posterImage.firstElementChild.src + ")";
+    let coverImage = document.querySelector("#" + coverImageId + " > img");
+    if(coverImage !== null) {
+        if(coverImage.src) {
+            backgroundUrl = "url(" + coverImage.src + ")";
         }
     }
-    return (backgroundUrl);
+    return(backgroundUrl);
 }
 
 /* -----------------------------------
@@ -949,7 +972,7 @@ function checkQualityOfUrls() {
     if(checkUrlPersistence) {
         // get all anchors with external reference
         let anchors = document.querySelectorAll(
-            "a:not(.fig-ref,.fn-ref,.bib-ref,.footnote,.panel-anchors,.heading-ref-a)");
+            "a:not(.fig-ref,.fn-ref,.bib-ref,.footnote,.heading-ref-a)");
         anchors.forEach(function (anchor) {
             let specificUse = anchor.getAttribute("data-specific-use");
             let href = anchor.href;
@@ -986,15 +1009,6 @@ function URLifyString(string){
     return(string);
 }
 
-function generateQRCode(url) {
-
-    if (url) {
-        let qrcodeContainer = document.getElementById("qrcode");
-        new QRCode(qrcodeContainer, url);
-        document.getElementById("qrcode").style.display = "block";
-    };
-}
-
 /* ----------------------
 Download related function:
 -----------------------*/
@@ -1014,109 +1028,253 @@ function downloadDocumentConfig() {
     download(JSON.stringify(json), "text/json", filename);
 }
 
-function downloadHTMLDocument() {
+/**
+ * Main export function to download the current document as a self-contained HTML file.
+ * Waits for all images in #main-wrapper to be converted to base64 WebP before building the HTML.
+ * @async
+ * @returns {Promise<void>} triggers a file download when complete
+ */
+async function downloadHTMLDocument() {
 
-    let confirmDownload = confirm("Download this document as HTML-file?");
-    if (confirmDownload) {
+    const confirmDownload = confirm('Download this document as HTML-file?');
+    if (!confirmDownload) return;
 
-        // get document properties:
-        let documentRoot = document.querySelector(':root');
-        let styles = getComputedStyle(documentRoot);
-        let journalColor = styles.getPropertyValue("--journal-color");
-        let documentId = getDocumentStateProperty("documentId");
-        let lang = localStorage.getItem("documentLang");
-     
-        // create HTML document:
-        let htmlDoc = document.implementation.createHTMLDocument("documentId");
-        htmlDoc.documentElement.lang = lang;
-        htmlDoc.documentElement.style.setProperty('--journal-color', journalColor);
+    // show progress-bar:
+    progressBar.style.display = "block";
 
-        // fallback-script (for HTML exports);
-        const fallbackScript = function fallback(noJs) {
-            document.addEventListener("readystatechange", (event) => {
-               if (event.target.readyState === "interactive") {
-                  if(noJs) {
-                    const errorConsole = document.createElement("div");
-                    errorConsole.id = "error-message";
-                    errorConsole.innerHTML = "<span>&#9432;</span> There was a problem loading external scripts from the internet." +
-                    " The document is entirely readable but might have reduced functionalities." +
-                    " Please visit the source address by following the DOI link!"
-                    window.document.body.prepend(errorConsole);
-                    // remove linked css stylesheet as well:
-                    if(document.querySelector("link") !== null) {
-                        document.querySelector("link").remove();
-                    }
-                    // remove poster-image:
-                    document.querySelector("#poster-image").remove();
-                    // push toc to top of page:
-                    let pageHeader = document.querySelector('#page-header');
-                    let tocList = document.querySelector('#toc-list');
-                    if(pageHeader !== null && tocList !== null) {
-                        pageHeader.appendChild(tocList);
-                    }
-                  }
-               }
-            });
-         }
+    // convert images *before* cloning/exporting
+    if(base64Img) {
+        const body = document.querySelector('body');
+        await convertAllImagesToWebPBase64(body, {
+            // exclude supplement images (already base64encoded)
+            selector: 'img:not(.object-image)',  
+            quality: imgQuality ?? 0.8,
+            concurrency: 4,
+            onProgress: (done, total) => {
+                progressBar.textContent = `Converting images… ${done}/${total}`;
+            }
+        }).catch(err => {
+            console.warn('Image conversion completed with warnings:', err);
+        });
+    }
+    progressBar.textContent = 'Packing HTML…';
+  
+    // get document elements and properties:
+    const documentRoot = document.querySelector(':root');
+    const documentId = getDocumentStateProperty('documentId');
+    const lang = localStorage.getItem('documentLang');
+    const htmlDoc = document.implementation.createHTMLDocument('documentId');
+    htmlDoc.documentElement.lang = lang;
 
-        // get fallbackStyles from stylesheet:
-        let fallbackStyles = false;
-        if(localStorage.getItem("viewer-fallback-styles") !== null) {
-            fallbackStyles = document.createElement("style");
-            fallbackStyles.id = "fallback-styles";
-            fallbackStyles.textContent = localStorage.getItem("viewer-fallback-styles");
+    // get styles:
+    const styles = getComputedStyle(documentRoot);
+    const journalColor = styles.getPropertyValue('--journal-color');
+
+    // add root-styles:
+    htmlDoc.documentElement.style.setProperty('--journal-color', journalColor);
+
+    const fallbackScript = function fallback(noJs) {
+      document.addEventListener('readystatechange', (event) => {
+        if (event.target.readyState === 'interactive') {
+          if (noJs) {
+            const errorConsole = document.createElement('div');
+            errorConsole.id = 'error-message';
+            errorConsole.innerHTML = "<span>&#9432;</span> There was a problem loading external scripts from the internet. The document is entirely readable but might have reduced functionalities. Please visit the source address by following the DOI link!";
+            window.document.body.prepend(errorConsole);
+            if (document.querySelector('link') !== null) {
+              document.querySelector('link').remove();
+            }
+            const poster = document.querySelector('#poster-image');
+            if (poster) poster.remove();
+            const pageHeader = document.querySelector('#page-header');
+            const tocList = document.querySelector('#toc-list');
+            if (pageHeader && tocList) pageHeader.appendChild(tocList);
+          }
         }
-
-        // viewer script paths (provisionary)
-        const viewControllerPath = "https://publications.test.dainst.org/jatsinform/src/js/htmlViewController.js";
-        const viewerCssPath = "https://publications.test.dainst.org/jatsinform/src/css/viewer-styles.css" 
-
-        // define document-head
-        htmlDoc.head.innerHTML = 
-        " <meta name='title' content='a title'>" +
-        " <meta name='description' content='cite by...'>" +
-        "  <script>" + fallbackScript + "</script>" +
-        "  <script type='text/javascript' onerror='this.onerror=null;fallback(true);' src='" + viewControllerPath + "'></script>" +
-        "  <link type='text/css' rel='stylesheet' onerror='this.onerror=null;fallback(false)' href='" + viewerCssPath + "'>";
-    
-        if(fallbackStyles) htmlDoc.head.appendChild(fallbackStyles);
-
-        // remove fetchStates:
-        let mainWrapper = document.querySelector("#main-wrapper");
-        let fetchStates = mainWrapper.querySelectorAll(".fetch-state");
-        fetchStates.forEach(element => {element.remove();});
-
-        // add main-wrapper to document-body
-        htmlDoc.body.innerHTML = mainWrapper.outerHTML;
-        htmlDoc.body.classList.add("fade-in");
-
-        // define file name for download:
-        let filename = documentId + ".html";
-        download(htmlDoc.documentElement.outerHTML, "text/html", filename);
-
-        console.log(htmlDoc.documentElement);
+      });
     };
+  
+    let fallbackStyles = false;
+    if (localStorage.getItem('viewer-fallback-styles') !== null) {
+      fallbackStyles = document.createElement('style');
+      fallbackStyles.id = 'fallback-styles';
+      fallbackStyles.textContent = localStorage.getItem('viewer-fallback-styles');
+    }
+  
+    const viewControllerPath = 'src/js/htmlViewController.js';
+    const viewerCssPath = 'src/css/viewer-styles.css';
+  
+    let jsonLD = localStorage.getItem('json-LD');
+    if (jsonLD !== null) { jsonLD = JSON.parse(jsonLD); }
+
+    htmlDoc.head.innerHTML =
+      "  <title>" + jsonLD.headline + "</title>" +
+      '  <script>' + fallbackScript + '</script>' +
+      "  <script type='text/javascript' onerror='this.onerror=null;fallback(true);' src='" + viewControllerPath + "'></script>" +
+      "  <link type='text/css' rel='stylesheet' onerror='this.onerror=null;fallback(false)' href='" + viewerCssPath + "'>" +
+      "  <script type='application/ld+json'>" + JSON.stringify(jsonLD) + '</script>';
+  
+    if (fallbackStyles) htmlDoc.head.appendChild(fallbackStyles);
+  
+    // remove fetch state markers
+    const bodyClone = document.querySelector("body").cloneNode(true);
+    bodyClone.querySelectorAll('.fetch-state').forEach(el => el.remove());
+    bodyClone.querySelector("#progress-bar").remove();
+  
+    // insert content
+    htmlDoc.body.innerHTML = bodyClone.outerHTML;
+    htmlDoc.body.classList.add('fade-in');
+  
+    // kick off the download
+    const filename = (documentId || 'document') + '.html';
+    download(htmlDoc.documentElement.outerHTML, 'text/html', filename);
 }
 
 function download(content, type, filename) {
 
-     // create blob and download link:
-     const blob = new Blob([content], { type: type });
-     const link = document.createElement("a");
-     link.download = filename;
-     link.href = window.URL.createObjectURL(blob);
-     link.dataset.downloadurl = [type, link.download, link.href].join(":");
- 
-     // proceed download by adding click event:
-     const evt = new MouseEvent("click", {
-         view: window,
-         bubbles: true,
-         cancelable: true,
-     });
- 
-     link.dispatchEvent(evt);
-     link.remove();
+    // create blob and download link:
+    const blob = new Blob([content], { type: type });
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = window.URL.createObjectURL(blob);
+    link.dataset.downloadurl = [type, link.download, link.href].join(":");
+
+    // proceed download by adding click event:
+    const evt = new MouseEvent("click", {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+    });
+
+    link.dispatchEvent(evt);
+    link.remove();
 }
+
+/* ----------------
+Download Helpers
+------------------*/
+
+/**
+ * Create a canvas and draw the given image on it.
+ * @param {HTMLImageElement} img fully loaded image element
+ * @returns {HTMLCanvasElement|OffscreenCanvas} canvas with image drawn
+ */
+
+function canvasFromImage(img) {
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    const c = ('OffscreenCanvas' in window)
+      ? new OffscreenCanvas(w, h)
+      : Object.assign(document.createElement('canvas'), { width: w, height: h });
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    return c;
+  }
+
+/**
+ * Asynchronously converts a canvas into a base64 data URL using toBlob/convertToBlob.
+ * @param {HTMLCanvasElement|OffscreenCanvas} canvas source canvas
+ * @param {string} [type='image/webp'] MIME type for output format (e.g., 'image/webp')
+ * @param {number} [quality=0.8] quality factor between 0 and 1
+ * @returns {Promise<string>} resolves to a base64 data URL string
+ */
+
+async function canvasToDataURLAsync(canvas, type = 'image/webp', quality = 0.8) {
+    // OffscreenCanvas only has convertToBlob; HTMLCanvas has toBlob
+    const toBlobPromise = canvas.convertToBlob
+        ? canvas.convertToBlob({ type, quality })
+        : new Promise(resolve => canvas.toBlob(resolve, type, quality));
+
+    return toBlobPromise.then(blob => new Promise((resolve, reject) => {
+        if (!blob) return reject(new Error('Canvas toBlob returned null (likely unsupported type)'));
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result); // data URL
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+    }));
+}
+  
+/**
+ * Converts a single <img> element to a WebP base64 data URL and replaces its src.
+ * Waits until the image is loaded before processing.
+ * @param {HTMLImageElement} imgEl the image to convert
+ * @param {number} [quality=0.8] quality factor between 0 and 1 for WebP encoding
+ * @returns {Promise<boolean>} resolves to true if converted, false if skipped or failed
+ */
+
+async function convertImgElToWebPDataURL(imgEl, quality = 0.8) {
+    try {
+        // Skip if already a WebP data URL
+        const src = imgEl.getAttribute('src') || '';
+        if (src.startsWith('data:image/webp;base64,')) return false;
+
+        // If the image is cross-origin without proper CORS, drawing will taint the canvas.
+        // We detect this by trying to read back; but better, try to ensure images are same-origin / CORS-enabled.
+        // If the <img> isn't fully loaded yet, wait for it.
+        if (!imgEl.complete || imgEl.naturalWidth === 0) {
+        await new Promise((res, rej) => {
+            imgEl.addEventListener('load', res, { once: true });
+            imgEl.addEventListener('error', () => rej(new Error('image load error')), { once: true });
+        });
+        }
+
+        const canvas = canvasFromImage(imgEl);
+        const dataUrl = await canvasToDataURLAsync(canvas, 'image/webp', quality);
+        imgEl.src = dataUrl;
+
+        // (Optional) store intrinsic size on parent <figure>
+        const fig = imgEl.closest('figure');
+        if (fig) {
+        fig.dataset.imgWidth = imgEl.naturalWidth;
+        fig.dataset.imgHeight = imgEl.naturalHeight;
+        }
+        return true;
+    } catch (err) {
+        // Likely causes: cross-origin tainting, unsupported type, SVG filters, etc.
+        console.warn('Conversion skipped for one image:', err);
+        return false;
+    }
+}
+  
+/**
+ * Converts all <img> elements inside a container to WebP base64 data URLs.
+ * Processes images concurrently with limited parallelism to avoid blocking the UI.
+ * @param {HTMLElement} container parent element containing images
+ * @param {Object} [options] options object
+ * @param {string} [options.selector='img'] CSS selector to find images
+ * @param {number} [options.quality=0.8] quality factor for WebP encoding
+ * @param {number} [options.concurrency=4] maximum number of images to process in parallel
+ * @param {Function} [options.onProgress] callback(doneCount, totalCount) after each image
+ * @returns {Promise<number>} resolves to number of images processed
+ */
+
+async function convertAllImagesToWebPBase64(container, {
+    selector = 'img',
+    quality = 0.8,
+    concurrency = 4,
+    onProgress = null
+    } = {}) {
+    const imgs = Array.from(container.querySelectorAll(selector));
+    let done = 0;
+  
+    const queue = imgs.map(img => async () => {
+      await convertImgElToWebPDataURL(img, quality);
+      done++;
+      if (onProgress) onProgress(done, imgs.length);
+    });
+  
+    // Simple semaphore
+    const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
+      while (queue.length) {
+        const task = queue.shift();
+        if (task) await task();
+      }
+    });
+  
+    await Promise.all(workers);
+    return imgs.length;
+}
+  
 
 /* -------------------------------
 Application related functions:
@@ -1377,3 +1535,289 @@ function debounce(func, wait, immediate) {
         if (callNow) func.apply(context, args);
     };
 }
+
+/**
+ * Namespace-agnostic JATS <front> -> Schema.org ScholarlyArticle (JSON-LD).
+ * - Accepts a <front> Element or an XML string.
+ * - Optionally merges into an existing JSON object (second param).
+ * - Returns the resulting JSON-LD object.
+ */
+function mapJATSFrontToScholarlyArticle(front, json = {}) {
+    // Parse to a DOM if given a string
+    let frontEl;
+    if (typeof front === "string") {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(front, "application/xml");
+      frontEl = doc.documentElement;
+    } else {
+      frontEl = front;
+    }
+    if (!frontEl) return json;
+  
+    // ===== XPath helpers (namespace-agnostic via local-name()) =====
+    // Turn 'a/b[@attr="v"]/c' into '*[local-name()="a"]/*[local-name()="b"][@attr="v"]/*[local-name()="c"]'
+    const lnPath = (p) =>
+      p
+        .split("/")
+        .filter(Boolean)
+        .map(seg => {
+          // keep predicates as-is
+          const m = seg.match(/^([^\[]+)(\[.+\])?$/);
+          if (!m) return `*[local-name()="${seg}"]`;
+          const [, tag, predicate = ""] = m;
+          return `*[local-name()="${tag}"]${predicate}`;
+        })
+        .join("/");
+  
+    const xEval = (expr, ctx = frontEl, type = XPathResult.ORDERED_NODE_SNAPSHOT_TYPE) =>
+      (ctx.ownerDocument || ctx).evaluate(expr, ctx, null, type, null);
+  
+    const getText = (path, ctx = frontEl) => {
+      const r = xEval(lnPath(path), ctx, XPathResult.STRING_TYPE);
+      const v = r && typeof r.stringValue === "string" ? r.stringValue.trim() : "";
+      return v;
+    };
+    const getNode = (path, ctx = frontEl) => {
+      const r = xEval(lnPath(path), ctx, XPathResult.FIRST_ORDERED_NODE_TYPE);
+      return r.singleNodeValue || null;
+    };
+    const getNodes = (path, ctx = frontEl) => {
+      const r = xEval(lnPath(path), ctx, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE);
+      const arr = [];
+      for (let i = 0; i < r.snapshotLength; i++) arr.push(r.snapshotItem(i));
+      return arr;
+    };
+    const textOf = (el) => (el ? (el.textContent || "").trim() : "");
+  
+    // ===== Utilities =====
+    const cleanDOI = (v) => (v || "").trim().replace(/^https?:\/\/doi\.org\//i, "");
+    const toISODate = (y, m, d) => {
+      if (!y) return "";
+      const mm = m ? String(parseInt(m, 10)).padStart(2, "0") : "";
+      const dd = d ? String(parseInt(d, 10)).padStart(2, "0") : "";
+      return [y.padStart(4, "0"), mm, dd].filter(Boolean).join("-");
+    };
+
+    // Matches contribs by type and returns array of Person objects
+    function getContribsByType(frontEl, types) {
+        // Build XPath OR expression
+        const expr = `article-meta/contrib-group/contrib[${types
+        .map(t => `@contrib-type='${t}'`)
+        .join(" or ")}]`;
+        const nodes = getNodes(expr, frontEl);
+    
+        return nodes.map(c => {
+        const given = getText("name/given-names", c);
+        const family = getText("name/surname", c);
+        const prefix = getText("name/prefix", c);
+        const fullName = [prefix, given, family].filter(Boolean).join(" ").trim() || (given || family);
+    
+        const orcid = getText("contrib-id[@contrib-id-type='orcid']", c) || undefined;
+    
+        const instName = getText("aff/institution", c) || getText("aff/institution-wrap/institution", c) || undefined;
+        const ror      = getText("aff/institution-wrap/institution-id[@institution-id-type='ROR']", c) || undefined;
+    
+        const addrLine = getText("aff/addr-line", c);
+        const city     = getText("aff/city", c);
+        const country  = getText("aff/country", c);
+        const email    = getText("aff/email", c);
+    
+        const affiliation = (instName || ror || addrLine || city || country)
+            ? {
+                "@type": "Organization",
+                name: instName || undefined,
+                identifier: ror ? { "@type": "PropertyValue", propertyID: "ROR", value: ror } : undefined,
+                address: (addrLine || city || country) ? {
+                "@type": "PostalAddress",
+                streetAddress: addrLine || undefined,
+                addressLocality: city || undefined,
+                addressCountry: country || undefined,
+                } : undefined,
+            }
+            : undefined;
+    
+        return {
+            "@type": "Person",
+            name: fullName || undefined,
+            honorificPrefix: prefix || undefined,
+            givenName: given || undefined,
+            familyName: family || undefined,
+            email: email || undefined,
+            identifier: orcid ? { "@type": "PropertyValue", propertyID: "ORCID", value: orcid } : undefined,
+            sameAs: orcid || undefined,
+            affiliation: affiliation || undefined,
+        };
+        });
+    }
+  
+    // ===== Journal / Periodical =====
+    const journalTitle = getText("journal-meta/journal-title-group/journal-title"); // <- FIXED (works w/ or w/o ns)
+    const issnOnline = getText('journal-meta/issn[@publication-format="online"]');
+    const issnPrint  = getText('journal-meta/issn[@publication-format="print"]');
+    const isbnPrint  = getText('journal-meta/isbn[@publication-format="print"]');
+    const journalIdDoiUrl = getText('journal-meta/journal-id[@journal-id-type="doi"]');
+    const journalDoi = cleanDOI(journalIdDoiUrl) || undefined;
+  
+    const publisherName = getText("journal-meta/publisher/publisher-name");
+    const pubAddrInst   = getText("journal-meta/publisher/publisher-loc/institution");
+    const pubAddrLine   = getText("journal-meta/publisher/publisher-loc/addr-line");
+    const pubCityRaw    = getText("journal-meta/publisher/publisher-loc/city");
+    const pubCountry    = getText("journal-meta/publisher/publisher-loc/country");
+    const pubUrl        = getText('journal-meta/publisher/publisher-loc/ext-link[@ext-link-type="uri"]');
+  
+    let postalCode = "";
+    let addressLocality = pubCityRaw;
+    const mCity = pubCityRaw.match(/^(\d{4,6})\s+(.+)$/);
+    if (mCity) {
+      postalCode = mCity[1];
+      addressLocality = mCity[2];
+    }
+  
+    const publisher = publisherName
+      ? {
+          "@type": "Organization",
+          name: publisherName,
+          url: pubUrl || undefined,
+          department: pubAddrInst || undefined,
+          address: (pubAddrLine || addressLocality || postalCode || pubCountry) ? {
+            "@type": "PostalAddress",
+            streetAddress: pubAddrLine || undefined,
+            addressLocality: addressLocality || undefined,
+            postalCode: postalCode || undefined,
+            addressCountry: pubCountry || undefined,
+          } : undefined,
+        }
+      : undefined;
+  
+    const periodical = (journalTitle || issnOnline || issnPrint || journalDoi || isbnPrint)
+      ? {
+          "@type": "Periodical",
+          name: journalTitle || undefined,
+          issn: [issnPrint, issnOnline].filter(Boolean).join(", ") || undefined,
+          identifier: [
+            journalDoi && { "@type": "PropertyValue", propertyID: "doi", value: journalDoi },
+            isbnPrint && { "@type": "PropertyValue", propertyID: "isbn", value: isbnPrint },
+          ].filter(Boolean),
+          publisher: publisher || undefined,
+        }
+      : undefined;
+  
+    // ===== Article Core =====
+    const articleTitle    = getText("article-meta/title-group/article-title");
+    const articleSubtitle = getText("article-meta/title-group/subtitle");
+  
+    const articleDoiUrl = getText('article-meta/article-id[@pub-id-type="doi"]');
+    const articleDOI    = cleanDOI(articleDoiUrl) || undefined;
+
+    // get contributors:
+    const authors = getContribsByType(frontEl, ['author']);
+    const coauthors = getContribsByType(frontEl, ['co-author']);
+    const editors = getContribsByType(frontEl, ['editor']);
+  
+    // Prefer a 'pub' or 'collection' date, otherwise the first pub-date present
+    let pubDateNode =
+      getNode('article-meta/pub-date[@date-type="pub"]') ||
+      getNode('article-meta/pub-date[@pub-type="collection"]') ||
+      getNode("article-meta/pub-date");
+    const datePublished = pubDateNode
+      ? toISODate(
+          getText("year", pubDateNode),
+          getText("month", pubDateNode),
+          getText("day", pubDateNode)
+        )
+      : undefined;
+  
+    const volumeRaw = getText("article-meta/volume"); // might be "65•2024"; keep verbatim
+  
+    // Canonical URL: try self-uri (online-url), else DOI
+    const selfUri = getText('article-meta/self-uri[@content-type="online-url"]');
+    const canonicalUrl = selfUri || (articleDOI ? `https://doi.org/${articleDOI}` : undefined);
+  
+    // Abstract (first <abstract> text); multilingual abstracts → additional entries in 'abstract' as objects
+    const abstractEl = getNode("article-meta/abstract");
+    const abstractMain = abstractEl ? textOf(abstractEl).replace(/\s+/g, " ").trim() : undefined;
+  
+    const transAbstractEls = getNodes("article-meta/trans-abstract");
+    const abstracts = [];
+    if (abstractMain) abstracts.push(abstractMain);
+    transAbstractEls.forEach(el => {
+      const lang = el.getAttribute("xml:lang") || el.getAttributeNS("http://www.w3.org/XML/1998/namespace", "lang");
+      const txt = textOf(el).replace(/\s+/g, " ").trim();
+      if (txt) {
+        abstracts.push({ "@value": txt, "@language": lang || undefined });
+      }
+    });
+  
+    // Keywords → DefinedTerms (preserve lang per group)
+    const kwGroups = getNodes("article-meta/kwd-group");
+    const aboutTerms = [];
+    kwGroups.forEach(grp => {
+      const inLang = grp.getAttribute("xml:lang") || grp.getAttributeNS("http://www.w3.org/XML/1998/namespace", "lang") || undefined;
+      getNodes("kwd", grp).forEach(kw => {
+        const name = textOf(kw);
+        if (name) {
+          aboutTerms.push({ "@type": "DefinedTerm", name, inLanguage: inLang || undefined });
+        }
+      });
+    });
+  
+    // Permissions / License
+    const licenseOnline = getText('article-meta/permissions/license[@license-type="online"]/license-p[@content-type="terms-of-use"]') ||
+                          getText("article-meta/permissions/license/license-p[@content-type='terms-of-use']") ||
+                          getText("article-meta/permissions/license"); // may already be a URL
+    const copyrightStatement = getText("article-meta/permissions/copyright-statement");
+    const copyrightHolder = getText("article-meta/permissions/copyright-holder");
+    const copyrightYear   = getText("article-meta/permissions/copyright-year") ||
+                            getText("article-meta/permissions/copyright-statement").match(/\b(19|20)\d{2}\b/)?.[0];
+
+  
+    // ===== Compose JSON-LD =====
+    const base = {
+      "@context": "https://schema.org",
+      "@type": "ScholarlyArticle",
+  
+      // Identity
+      headline: articleTitle || undefined,
+      name: articleTitle || undefined,
+      alternateHeadline: articleSubtitle || undefined,
+  
+      // DOI + URL
+      identifier: articleDOI
+        ? { "@type": "PropertyValue", propertyID: "doi", value: articleDOI }
+        : undefined,
+      url: canonicalUrl || undefined,
+  
+      // Publication
+      isPartOf: periodical || undefined,
+      volumeNumber: volumeRaw || undefined,
+      datePublished: datePublished || undefined,
+  
+      // People
+      author: authors.length ? authors : undefined,
+      contributor: coauthors.concat(editors).length ? coauthors.concat(editors) : undefined,
+
+      // Publisher
+      publisher: publisher || undefined,
+  
+      // Content
+      abstract: abstracts.length === 1 ? abstracts[0] : (abstracts.length ? abstracts : undefined),
+      about: aboutTerms.length ? aboutTerms : undefined,
+  
+      // Rights
+      copyrightHolder: copyrightHolder || undefined,
+      copyrightYear: copyrightYear || undefined,
+      copyrightNotice : copyrightStatement || undefined,
+      license: licenseOnline && /^https?:\/\//i.test(licenseOnline) ? licenseOnline : undefined,
+      isAccessibleForFree: !!(licenseOnline && /^https?:\/\//i.test(licenseOnline)),
+    };
+  
+    // Merge into incoming json without dropping user-supplied extras.
+    Object.keys(base).forEach(k => {
+      if (base[k] !== undefined && base[k] !== null && !(Array.isArray(base[k]) && base[k].length === 0)) {
+        json[k] = base[k];
+      }
+    });
+  
+    return json;
+}
+  
