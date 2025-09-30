@@ -1057,7 +1057,6 @@ function createToCByHeadlines(contentBody) {
     tocList.id = "toc-list";
 
     let headlines = contentBody.querySelectorAll(".title");
-    console.log(headlines);
     if (headlines !== null && headlines.length > 0) {
         for (let i = 0; i < headlines.length; ++i) {
             // get level in hierarchy:
