@@ -34,7 +34,7 @@
         font-family: var(--long-text-font-family);
     }
     @top-right {
-        border-bottom: 1pt solid #ccc1c1;
+        border-bottom: 1pt solid lightgrey;
 
     }
     @top-right-corner {
@@ -52,7 +52,7 @@
 }
 
 /* cover page */
-@page:nth(1) {
+@page :first {
     background: var(--background-url);
     background-repeat:no-repeat;
 }
@@ -355,9 +355,8 @@ a.fn-ref {
 
 /* page-header:
  ----------------*/
-.page-header {
+#page-header {
     break-before: page;
-    break-after: page;
     margin-bottom: 20mm;
 }
 
@@ -501,10 +500,6 @@ span.footnote {
 
 .contributors-link {
     text-decoration: none;
-}
-
-#qrcode {
-    margin-bottom:5mm;
 }
 
 .metadata-doi-link {

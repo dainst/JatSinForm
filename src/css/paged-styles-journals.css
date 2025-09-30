@@ -6,9 +6,10 @@
     --long-text-color: black;
     --short-text-color: black;
     --footnote-text-color:  black;
+    --metadata-text-color: #383737;
     --color-marginBox: transparent;
     --long-text-font-family: "Noto Serif Light";
-    --headline-text-font-family: "Noto Sans Light";
+    --headline-text-font-family: "Noto Serif Light";
     --short-text-font-family: "Noto Sans Light";
     --p-font-size: 10pt; /* default: 9.3pt */
     --line-height-para: 1.5; /* default 1.5 */
@@ -16,6 +17,7 @@
     --caption-font-size: 7.3pt;
     --line-height-cap: 1.37; /* 10pt to 7.3pt */
     --li-font-size: 10pt; /* 9.3pt; */
+    --meta-element-font-size: 9.5pt; /* 9.3pt; */
     --imgMarginBottom: 2.5mm;
     --floatFigureMarginToText: 7.5mm;
     --floatFigureMarginBottom: 7.5mm;
@@ -95,13 +97,14 @@
 
 /* cover page */
 @page :first {
-    /* margin-top: 150%;   */
+    counter-increment: page 0;
     margin-left: 30mm;
     margin-right: 30mm;
-    background: var(--journal-color);
-    background-size:contain;
+    background: var(--background-url) var(--background-blend-color); 
+    background-blend-mode: var(--background-blend-mode);
+    background-position:  var(--background-position);
+    background-size: cover;
     background-repeat: no-repeat;
-    counter-increment: page 0;
 
     @bottom-right {
         content: "";
@@ -296,7 +299,8 @@ h1, h2, h3, h4, h5, h6 {
 .main-title {
     font-size: 14pt;
     margin: 5mm 0 3mm 0;
-    line-height: 1.5; /* 21pt to 14pt */    
+    line-height: 1.5; /* 21pt to 14pt */ 
+    font-weight: 600;   
 }
 
 .main-title.first-element {
@@ -323,8 +327,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .title-appendix {
     font-family: var(--headline-text-font-family);
+    font-size: 12pt;
     line-height: 1.5; /* 14pt to 9.3pt */;
-    font-weight: 500; /* medium */
+    font-weight: 600; 
     color: black;
     text-transform: uppercase;
     border-top: 3px solid var(--journal-color);
@@ -354,15 +359,13 @@ a.footnote-reference {
     font-size: var(--p-font-size);
 }
 
-/* figure references */
-a.figure-reference {
+a.fn-ref {
     text-decoration:none;
-    font-weight:600;
+    word-break: keep-all;
 }
 
 a.fig-ref {
-    font-weight:600;
-    text-decoration:none;
+    font-weight:500;
     word-break: keep-all;
 }
 
@@ -370,10 +373,7 @@ a.bib-ref {
     text-decoration:none;
 }
 
-a.fn-ref {
-    text-decoration:none;
-    word-break: keep-all;
-}
+
 
 /* table styles
 ------------------*/
@@ -418,14 +418,14 @@ table td:first-child { border-left: none; }
     bottom: 10mm;
     font-family: var(--short-text-font-family);
     break-before: page;
-    background:white;
+    background:#ffffffe6;
     line-height: var(--line-height);  /* 14pt zu 9.3pt */
 }
 
 .abstract-headline {
     font-family: var(--headline-text-font-family);
     font-size: var(--p-font-size);
-    font-weight: 500; /* medium */
+    font-weight: 600;
     text-transform: uppercase;
     color: black;
     margin-bottom: 0;
@@ -433,7 +433,7 @@ table td:first-child { border-left: none; }
 
 .abstract-title {
     font-family: var(--headline-text-font-family);
-    font-weight: 500; /* medium */
+    font-weight: 600; 
     color: var(--journal-color);
     font-size: 11pt;
     margin: 0;
@@ -449,14 +449,14 @@ table td:first-child { border-left: none; }
 }
 
 .abstract-author {
-    color: #929292;
+    color: #383737;
     font-size: var(--p-font-size);
     padding: 0;
     margin: 0;
 }
 
 .abstract-text {
-    color: #929292;
+    color: #383737;
     font-size: var(--p-font-size);
     margin: 5mm 0;
     display:block;
@@ -466,7 +466,7 @@ table td:first-child { border-left: none; }
 .keywords-headline {
     font-family: var(--headline-text-font-family);
     font-size: var(--p-font-size);
-    font-weight: 500; /* medium */
+    font-weight: 600;
     text-transform: uppercase;
     color: black;
     margin-bottom: 0;
@@ -477,7 +477,7 @@ table td:first-child { border-left: none; }
 .kwd-group {
     font-size: var(--p-font-size);
     font-family: var(--short-text-font-family);
-    color: #929292;
+    color: #383737;
     margin: 0;
     font-weight: 300;
     text-align: justify;
@@ -498,7 +498,7 @@ table td:first-child { border-left: none; }
     font-size: 10pt;
     line-height: 1.6;  /* 16pt to 10pt */
     font-weight: 400; /* regular */
-    color: #929292;
+    color: #383737;
     text-transform: uppercase;
     text-align:justify;
     margin: 0;
@@ -530,7 +530,7 @@ table td:first-child { border-left: none; }
     font-weight: 300; /* light */
     font-size: var(--p-font-size);
     line-height: var(--line-height); /* 9.3pt to 14pt */
-    color: #929292;
+    color: #383737;
     text-align:justify;
     margin: 0;
     padding: 5mm 0 0 0;
@@ -563,12 +563,12 @@ span.footnote {
 }
 
 .pagedjs_footnote_content {
-    border-top: 1px solid #b4afa7;
+    border-top: 0.5pt solid #000000;
     padding: 2.5mm 0;
 } 
 
 .pagedjs_footnote_area {
-    border-bottom: 1px solid #b4afa7;
+    border-bottom:0.5pt solid #000000;
     margin-top: 2.5mm;
 }
 
@@ -640,7 +640,8 @@ span.footnote {
     font-family: var(--long-text-font-family);
     page-break-inside: avoid;
     text-align: left;
-    padding-bottom: 2.5mm;
+    padding-left:0;
+    display: block;
 }
 
 .reference > .mixed-citation {
@@ -659,10 +660,6 @@ span.footnote {
     line-height: 1.385;/* 11.5pt to 8.3pt */
     margin: 0;
     margin-right: 2.5mm;
-}
-
-.mixed-citation > a {
-    /* text-decoration: none; */
 }
 
 .ext-ref {
@@ -684,8 +681,9 @@ span.footnote {
 }
 
 .attribution {
+    color: var(--metadata-text-color);
     font-family: var(--short-text-font-family);
-    font-size: var(--p-font-size);
+    font-size: 9.5pt !important;
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
     margin: 0.5mm 0;
@@ -693,8 +691,9 @@ span.footnote {
 }
 
 .attribution > .img-label {
+    color: var(--metadata-text-color);
     font-family: var(--short-text-font-family);
-    font-size: var(--p-font-size);
+    font-size: 9.5pt !important;
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
     margin: 0.5mm 0;
@@ -709,7 +708,7 @@ span.footnote {
     -webkit-column-count: 2;
     -moz-column-count: 2;
     column-fill: auto;
-    column-gap: 4mm;
+    column-gap: 8mm;
 }
 
 .meta-section.right-page {
@@ -720,45 +719,138 @@ span.footnote {
     margin-right:-20mm;
 }
 
+/* trans-abstract */
+.trans-abstract > .abstract-author, .abstract-subtitle, .abstract-text {
+    font-size: var(--meta-element-font-size);
+    font-family: var(--short-text-font-family);
+}
+
+.trans-abstract > .kwd-group > .keyword {
+    font-size: var(--meta-element-font-size);
+    font-family: var(--short-text-font-family);
+}
+
+/* authors data */
+
 .contributors-card {
     margin: 2.5mm 0;
 }
 
 .contributors-card > p {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
     font-family: var(--short-text-font-family);
     text-align:left;
     margin: 0;
 }
 
 .contributor-link {
+    color: var(--metadata-text-color);
+    display: inline-flex;
+    align-items: center;
     text-decoration: none;
-    word-break: normal;
+    word-break: keep-all;
 }
 
-.contributor-link:before {
-    content: "\260D";
-    padding-right: 1mm;
+.contributor-link::before {
+    content: "";
+    display: inline-block;
+    background: url("assets/graphics/ORCID.png") no-repeat center center;
+    background-size: contain;
+    width: 10pt;
+    height: 10pt;
+    margin-right: 2pt;
 }
 
 .institution-link {
+    color: var(--metadata-text-color);
     text-decoration: none;
-    word-break: normal;
+    word-break: keep-all;
 }
 
-.institution-link:before {
-    content: "\260D";
-    padding-right: 1mm;
+.institution-link::before {
+    content: "";
+    display: inline-block;
+    background: url("assets/graphics/ROR.png") no-repeat center center;
+    background-size: contain;
+    width: 11pt;
+    height: 11pt;
+    margin-right: 2pt;
 }
 
-#qrcode {
-    margin-bottom:5mm;
-    width: 80%;
-}
-
+/* article metadata */
 .metadata-doi-link {
-    font-family: var(--short-text-font-family);
-    font-size: 9.5pt;
+    font-size: 11pt;
     color: var(--journal-color);
+}
+
+.article-title {
+    font-size: var(--meta-element-font-size);
+    color: var(--metadata-text-color);
+    margin: 2.5mm 0;
+}
+
+.article-title::before {
+    font-style:italic;
+    content: attr(data-meta-title) ": ";
+}
+
+.article-subtitle {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+}
+
+.article-subtitle::before {
+    font-style:italic;
+    content: attr(data-meta-title) ": ";
+}
+
+.pub-date {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+}
+
+.pub-date::before {
+    font-style:italic;
+    content: attr(data-meta-title) ": ";
+}
+
+.year::after {
+    content: "-";
+}
+
+.month:after {
+    content: "-";
+}
+
+.copyright-statement {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+}
+
+.copyright-statement::before {
+    font-style:italic;
+    content: attr(data-meta-title) ": ";
+}
+
+.license-p {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+}
+
+.license-p::before {
+    font-style:italic;
+    content: attr(data-meta-title) ": ";
+}
+
+.system-notice {
+    color: var(--metadata-text-color);
+    font-size: 9.5pt;
+    margin: 5mm 0;
 }
 
 /* imprint
@@ -768,15 +860,31 @@ span.footnote {
 }
 
 #imprint > p {
+    color: var(--metadata-text-color);
     font-family: var(--short-text-font-family);
-    font-size: var(--p-font-size);
+    font-size: var(--meta-element-font-size);
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
     text-align: left;
 }
 
+#journal-doi-link {
+    display: block;
+    color: var(--journal-color);
+}
+
+.publishing-history {
+    color: var(--metadata-text-color);
+    display:inline;
+}
+
+.publishing-history::before {
+    content: ", ";
+}
+
 .publisher {
-    margin-top: 5mm;
+    color: var(--metadata-text-color);
+    margin: 2mm 0;
 }
 
 .publisher-name {
@@ -784,8 +892,9 @@ span.footnote {
 }
 
 .publisher > p {
+    color: var(--metadata-text-color);
     font-family: var(--short-text-font-family);
-    font-size: var(--p-font-size);
+    font-size: var(--meta-element-font-size);
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
     text-align: left;
@@ -793,8 +902,9 @@ span.footnote {
 }
 
 .publisher-loc > p {
+    color: var(--metadata-text-color);
     font-family: var(--short-text-font-family);
-    font-size: var(--p-font-size);
+    font-size: var(--meta-element-font-size);
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
     padding:0;
@@ -802,8 +912,9 @@ span.footnote {
 }
 
 .publisher-loc > a.ext-ref {
-    font-family: var(--short-text-font-family);
-    font-size: var(--p-font-size);
+    color: var(--metadata-text-color);
+    font-family: var(---short-text-font-family);
+    font-size: var(--meta-element-font-size);
     font-weight: 300;
     line-height: 1.5;
 };
@@ -815,23 +926,22 @@ span.footnote {
 }
 
 .role {
+    color: var(--metadata-text-color);
     font-family: var(--short-text-font-family);
     font-style: italic;
+    font-size: var(--meta-element-font-size);
+    margin-top: 2.5mm;
+    margin-bottom:0;
     padding:0;
-    margin-top: 2.5mm;
 }
 
-#journal-doi-link {
-    display: block;
-    color: var(--journal-color);
+.custom-meta-section {
+    margin: 5mm 0;
 }
 
-.self-reference {
-    margin-top: 2.5mm;
-}
-
-.self-reference > a {
-    font-style: italic;
+.custom-meta > * {
+    color: var(--metadata-text-color);
+    font-size: 9.5pt !important;
 }
 
 /* image components
