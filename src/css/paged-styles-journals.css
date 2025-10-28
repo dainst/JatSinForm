@@ -237,6 +237,7 @@ span.text-medium {
 
 ul.list, ol.list {
     margin-top: 2.5mm;
+    padding-left: 6mm;
 }
 
 ul.list {
@@ -327,13 +328,14 @@ h1, h2, h3, h4, h5, h6 {
 
 .title-appendix {
     font-family: var(--headline-text-font-family);
-    font-size: 12pt;
+    font-size: 12pt !important;
     line-height: 1.5; /* 14pt to 9.3pt */;
     font-weight: 600; 
     color: black;
     text-transform: uppercase;
     border-top: 3px solid var(--journal-color);
     margin-top: 0;
+    margin-bottom: 3mm !important;
     padding-top: 2mm;
 }
 
@@ -778,10 +780,22 @@ span.footnote {
     margin-right: 2pt;
 }
 
-/* article metadata */
-.metadata-doi-link {
-    font-size: 11pt;
-    color: var(--journal-color);
+/* article metadata 
+----------------------------*/
+*[data-meta-title] {
+    text-align: left !important;
+}
+
+.article-id {
+    font-size: var(--meta-element-font-size);
+    color: var(--metadata-text-color);
+    margin: 2.5mm 0;
+}
+
+.article-id::before {
+    text-transform: capitalize;
+    content: attr(data-meta-title) ": ";
+    display: block;
 }
 
 .article-title {
@@ -791,8 +805,9 @@ span.footnote {
 }
 
 .article-title::before {
-    font-style:italic;
+    text-transform: capitalize;
     content: attr(data-meta-title) ": ";
+    display: block;
 }
 
 .article-subtitle {
@@ -802,8 +817,9 @@ span.footnote {
 }
 
 .article-subtitle::before {
-    font-style:italic;
+    text-transform: capitalize;
     content: attr(data-meta-title) ": ";
+    display: block;
 }
 
 .pub-date {
@@ -813,8 +829,9 @@ span.footnote {
 }
 
 .pub-date::before {
-    font-style:italic;
+    text-transform: capitalize;
     content: attr(data-meta-title) ": ";
+    display: block;
 }
 
 .year::after {
@@ -832,8 +849,17 @@ span.footnote {
 }
 
 .copyright-statement::before {
-    font-style:italic;
+    text-transform: capitalize;
     content: attr(data-meta-title) ": ";
+    display: block;
+}
+
+.license {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+    font-family: var(--long-text-font-family);
+    font-weight: 300;
 }
 
 .license-p {
@@ -843,8 +869,9 @@ span.footnote {
 }
 
 .license-p::before {
-    font-style:italic;
+    text-transform: capitalize;
     content: attr(data-meta-title) ": ";
+    display: block;
 }
 
 .system-notice {
@@ -925,10 +952,15 @@ span.footnote {
     margin:0;
 }
 
+.journal-contributors > .contributors-card {
+    margin:0;
+
+}
+
 .role {
     color: var(--metadata-text-color);
+    text-transform: capitalize;
     font-family: var(--short-text-font-family);
-    font-style: italic;
     font-size: var(--meta-element-font-size);
     margin-top: 2.5mm;
     margin-bottom:0;
@@ -937,11 +969,25 @@ span.footnote {
 
 .custom-meta-section {
     margin: 5mm 0;
+    color: var(--metadata-text-color);
+}
+
+.custom-meta {
+    text-align:left !important;
 }
 
 .custom-meta > * {
     color: var(--metadata-text-color);
     font-size: 9.5pt !important;
+}
+
+.custom-meta > .meta-name {
+    text-transform: capitalize;
+    display:block
+}
+
+.custom-meta > .meta-name:after {
+    content: ":"
 }
 
 /* image components
@@ -1047,7 +1093,7 @@ styles for classified images
     margin-right: var(--floatFigureOffsetToMarginArea) !important;
     margin-left: var(--floatFigureMarginToText) !important;
     margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 5mm !important;
+    margin-top: 5mm;
 }
 
 .float-w-col-4.right-page {
@@ -1056,7 +1102,7 @@ styles for classified images
     margin-left: var(--floatFigureOffsetToMarginArea) !important;
     margin-right: var(--floatFigureMarginToText) !important;
     margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 5mm !important;
+    margin-top: 5mm;
 }
 
 .float-w-col-6.left-page {
@@ -1065,7 +1111,7 @@ styles for classified images
     margin-right: var(--floatFigureOffsetToMarginArea) !important;
     margin-left: var(--floatFigureMarginToText) !important;
     margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 5mm !important;
+    margin-top: 5mm;
 }
 
 .float-w-col-6.right-page {
@@ -1074,7 +1120,7 @@ styles for classified images
     margin-left: var(--floatFigureOffsetToMarginArea) !important;
     margin-right: var( --floatFigureMarginToText) !important;
     margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 5mm !important;
+    margin-top: 5mm;
 }
 
 .inset > figcaption {
@@ -1085,10 +1131,6 @@ styles for classified images
     padding: 5mm 0;
     right: 0;
     bottom: 0;
-
-    /*   width: 100% !important;
-    margin-bottom: 7.5mm;
-    display: block; */
 }
 
 .regular.right-page > figCaption {

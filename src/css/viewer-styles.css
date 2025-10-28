@@ -48,7 +48,7 @@ body {
 
 article {
     height: 100vh;
-    max-width: 98vw;    /* 2vw are reserved for main-header on the left side */
+    max-width: 97.5vw;    /* 2vw+ are reserved for main-header on the left side */
     display: flex;
     flex-wrap: nowrap;
 }
@@ -85,7 +85,6 @@ article {
     height: 100vh;
     resize:horizontal;
 }
-
 
 #content-body {
     padding: 6% 8%;
@@ -808,11 +807,12 @@ figcaption > .license {
 }
 
 figcaption > .license::before {
-    content: "["
+    content: "[";
+    display: inline;
 }
 
 figcaption > .license::after {
-    content: "]"
+    content: "]";
 }
 
 figure > a.internal-index-anchor {
