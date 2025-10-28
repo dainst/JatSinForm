@@ -57,6 +57,18 @@ for (let i = 0; i < constellationKeys.length; i++) {
         currentFigureSet = "[true, false]" + ",";
         nextFigureSet = "[false, false]";
     }
+
+    // avoid order: float and regular
+    if(/float/.test(splits[indexFigBefore])
+        && /inset/.test(splits[indexCurrentFig])) {
+            currentFigureSet = "[false, false]" + ",";
+        }
+    // avoid order: float and inset
+    if(/float/.test(splits[indexCurrentFig])
+    && /inset/.test(splits[indexNextFig])) {
+        currentFigureSet = "[true, false]" + ",";
+        nextFigureSet = "[false, false]";
+    }
     
     // avoid collision of figCaptions (overmargin -> float)
     if(/overmargin/.test(splits[indexFigBefore])
