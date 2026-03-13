@@ -57,7 +57,7 @@
             "className": "text-medium",
             "obligatory": false
         },
-        "list[list-type='ordered']": {
+        "list[list-type='order']": {
             "tagName": "ol",
             "className": "list",
             "obligatory": false
@@ -170,8 +170,8 @@
             "obligatory": false
         },
         "body": {
-            "tagName": "body",
-            "className": "body-text",
+            "tagName": "div",
+            "className": "text-body",
             "obligatory": true
         },
         "back": {
@@ -347,7 +347,7 @@
         "article-id": {
             "tagName": "p",
             "className": "article-id",
-            "metaTitle": "Article-ID",
+            "metaTitle": "DOI (url)",
             "setAttribute": "pub-id-type",
             "obligatory": true
         },
@@ -410,10 +410,16 @@
             "obligatory": false
         },
         "license": {
-            "tagName": "div",
+            "tagName": "p",
             "className": "license",
             "metaTitle": "License",
             "setAttribute": "license-type",
+            "obligatory": false
+        },
+        "ali:license_ref": {
+            "tagName": "a",
+            "className": "license-ref",
+            "refAttribute": "xlink:href",
             "obligatory": false
         },
         "permissions": {
