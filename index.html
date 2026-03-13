@@ -10,39 +10,52 @@
    </head>
    <body>
       <script>
-         // xml-document related constants:
-         const xmlFromEditor = false; // load editor-xml from localStorage
-         const xmlFolder = "xml-documents" // path to xml
+         // app deployment related:
+         const scriptsDomain = "http://localhost:3000/" 
 
+         // xml-document related constants:
+         const xmlFolder = "xml-documents" // path to xml
+         const xmlFromEditor = false;      // load editor-xml from localStorage
+        
          // all views related:
          const base64ImgConversion = true;
-         const imgQuality = 0.5; // 1 = without compression
+         const imgQuality = 0.75; // 1 = without compression
          const checkUrlPersistence = false;
          const addStatsSection = true;
 
          // cover design related:
-         const coverImageId = "f-1"; // e.g. "poster-image", "f-1", "f-2"
+         const coverImageId = "poster-image"; // e.g. "poster-image", "f-1", "f-2"
          const backgroundPosition = "center";
-         const backgroundBlendMode = "overlay";
+         const backgroundBlendMode = "difference";
          const backgroundBlendColor = "#393c47";
  
          // pdf view related:
          const pagesFlexDirection = "row"; // "row" or "column"
          const firstTextPageId = "page-2";
+         const keepGlobalFigOrder = true;
          const allFiguresOnTop = true;
          const rangeOverSection = true;
          const autoAvoidOrphans = true;
          const maxAbstractLength = 2500;
          const maxFootnoteLength = 2000;
          const maxCaptionLength = 1000;
-         const setEndnotes = false;
          const createToC = false;
          const devMode = false;
+         const autoCorrectIteration = false;
+         const maxAutoCorrectIterations = 2;
          const setAllFigures = false;
          const setNoFigures = false;
 
-         // define titles of meta-section:
-         const titlesOfAppendices = {
+         // define default titles:
+         const defaultTitles = {
+            "keywords": {
+               "de": "Schlagworte",
+               "en": "Keywords",
+               "fr": "Mots-clés",
+               "it": "Parole chiave",
+               "sp": "Palabras clave",
+               "es": "Palabras clave"
+            },
             "contents": {
                "de": "Inhalt",
                "en": "Contents",
