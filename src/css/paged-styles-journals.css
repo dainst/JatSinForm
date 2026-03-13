@@ -682,6 +682,10 @@ span.footnote {
     text-align:left;
 }
 
+#source-of-illustrations > .main-section-title {
+    margin-top:0;
+}
+
 .attribution {
     color: var(--metadata-text-color);
     font-family: var(--short-text-font-family);
