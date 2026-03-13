@@ -2,7 +2,8 @@ div#error-message {
    position:sticky;
    top:0;
    font-size:0.9rem;
-   background:#fff8cd;
+   background:#000000;
+   color:rgb(255, 255, 255);
    margin-bottom: 1%;
    padding: 1%;
 }
@@ -18,15 +19,20 @@ body {
     width: 90vw;
  }
 
- .panel-navigation {
+.panel-navigation {
     display:none;
+ }
+
+.journal-logo {
+   background: var(--journal-color);
+   width: 50%;
  }
 
  #abstract-navigation {
     display:none;
  }
 
- .abstract-text {
+.abstract-text {
     font-style: italic;
  }
 
@@ -38,9 +44,29 @@ body {
     text-align: justify;
  }
 
- .paragraph-counter {
-   padding-right:1%;
+.paragraph-counter {
+   padding-right:20px;
  }
+
+.fn-list li {
+  list-style-type: none;
+}
+
+.fn-list p {
+   display: inline;
+}
+
+.footnote > .label {
+   padding: 0 10px;
+}
+
+#gazetteer-list li {
+   list-style-type: none;
+}
+
+#arachne-list li {
+   list-style-type:none;
+}
 
  figure {
     margin: 0;
@@ -72,3 +98,15 @@ details {
 .map {
    display: none;
 }
+
+.screenreader-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }

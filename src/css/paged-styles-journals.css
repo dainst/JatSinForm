@@ -297,14 +297,14 @@ h1, h2, h3, h4, h5, h6 {
     margin-top:0;
 }
 
-.main-title {
+.main-section-title {
     font-size: 14pt;
     margin: 5mm 0 3mm 0;
     line-height: 1.5; /* 21pt to 14pt */ 
     font-weight: 600;   
 }
 
-.main-title.first-element {
+.main-section-title.first-element {
     padding-top:0;
     margin-top:0;
 }
@@ -413,7 +413,7 @@ table td:first-child { border-left: none; }
 
 /* cover-Page:
  ----------------*/
-.cover-page {
+.abstract {
     position: absolute;
     width: 100%;
     padding: 10mm 10mm;
@@ -487,7 +487,7 @@ table td:first-child { border-left: none; }
 
 /* page-header:
  ----------------*/
-#page-header {
+#title-header {
     break-before: page;
     break-after: avoid;
     margin-bottom: 30mm;
@@ -495,7 +495,7 @@ table td:first-child { border-left: none; }
     margin-left: 40mm;
 }
 
-.page-authors {
+.title-header-authors {
     font-family: var(--headline-text-font-family);
     font-size: 10pt;
     line-height: 1.6;  /* 16pt to 10pt */
@@ -507,7 +507,7 @@ table td:first-child { border-left: none; }
     padding: 0 0 5mm 0;
 }
 
-.page-title {
+.title-header-title {
     font-family: var(--headline-text-font-family);
     color: var(--journal-color);
     font-weight: 300; /* light */
@@ -518,7 +518,7 @@ table td:first-child { border-left: none; }
     padding-top: 5mm;
 }
 
-.page-subtitle {
+.title-header-subtitle {
     font-family: var(--headline-text-font-family);
     font-weight: 300; /* light */
     font-size: 18pt;
@@ -527,7 +527,7 @@ table td:first-child { border-left: none; }
     margin: 0;
 }
 
-.page-contributors {
+.title-contributors {
     font-family: var(--headline-text-font-family);
     font-weight: 300; /* light */
     font-size: var(--p-font-size);
@@ -633,7 +633,7 @@ span.footnote {
     text-align: left;
 }
 
-#reference-list .main-title {
+#reference-list .main-section-title {
     margin-top:0;
     margin-bottom:5mm;
 }
@@ -731,6 +731,11 @@ span.footnote {
     font-size: var(--meta-element-font-size);
     font-family: var(--short-text-font-family);
 }
+.trans-abstract > p {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+}
 
 /* authors data */
 
@@ -786,6 +791,10 @@ span.footnote {
     text-align: left !important;
 }
 
+*[data-meta-title] > a.ext-ref {
+    color: var(--metadata-text-color);
+}
+
 .article-id {
     font-size: var(--meta-element-font-size);
     color: var(--metadata-text-color);
@@ -793,7 +802,6 @@ span.footnote {
 }
 
 .article-id::before {
-    text-transform: capitalize;
     content: attr(data-meta-title) ": ";
     display: block;
 }
@@ -858,20 +866,18 @@ span.footnote {
     color: var(--metadata-text-color);
     font-size: var(--meta-element-font-size);
     margin: 2.5mm 0;
-    font-family: var(--long-text-font-family);
-    font-weight: 300;
+}
+
+.license::before {
+    text-transform: capitalize;
+    content: attr(data-meta-title) ": ";
+    display: block;
 }
 
 .license-p {
     color: var(--metadata-text-color);
     font-size: var(--meta-element-font-size);
     margin: 2.5mm 0;
-}
-
-.license-p::before {
-    text-transform: capitalize;
-    content: attr(data-meta-title) ": ";
-    display: block;
 }
 
 .system-notice {
@@ -897,7 +903,7 @@ span.footnote {
 
 #journal-doi-link {
     display: block;
-    color: var(--journal-color);
+    color: var(--metadata-text-color);
 }
 
 .publishing-history {

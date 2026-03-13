@@ -62,27 +62,29 @@
     "journalMainColor": "#164194",
     "logoPath": "src/css/assets/graphics/e-FB_Logo.png",
     "figCaptionsAtPageBottom": true,
-    "figureTypesettingClass": {
+      "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
       "tiny-square": "float-w-col-2",
       "tiny-portrait": "float-w-col-2",
-      "small-landscape": "regular",
-      "medium-landscape": "regular",
-      "large-landscape": "regular",
-      "small-square": "regular",
+      "small-landscape": "float-w-col-6",
+      "medium-landscape": "overmargin",
+      "large-landscape": "overmargin",
+      "small-square": "float-w-col-2",
       "medium-square": "regular",
-      "large-square": "regular",
-      "small-portrait": "regular",
-      "medium-portrait": "inset",
-      "large-portrait": "inset"
+      "large-square": "overmargin",
+      "small-portrait": "float-w-col-2",
+      "medium-portrait": "float-w-col-4",
+      "large-portrait": "float-w-col-6"
     },
     "figureModelSpecs": {
-      "float": ["50%", "100%"],
-      "inset": ["50%", "100%"],
-      "regular": ["75%", "100%"],
+      "float-w-col-2": ["25%", "100%"],
+      "float-w-col-4": ["50%", "100%"],
+      "float-w-col-6": ["75%", "100%"],
+      "inset": ["60%", "100%"],
+      "regular": ["100%", "100%"],
       "regular-bottom": ["100%", "100%"],
-      "overmargin": ["100%", "100%"],
-      "overmargin-bottom": ["100%", "100%"]
+      "overmargin": ["130%", "100%"],
+      "overmargin-bottom": ["130%", "100%"]
     }
   },
   "FdAI": {
