@@ -2,13 +2,15 @@
 * CONSTANTS
 ----------------------------*/
 const rangeNextFigRefs = 2;
+const figureDensityThreshold = 2;
 const resTypeClassListKey = 0;
 const ratioClassListKey = 1;
 const typesettingClassListKey = 2;
-const pageSpaceBuffer = 0.9;
-const virtualMarginBuffer = 1;
+const pageSpaceBuffer = 0.85;
+const virtualMarginBuffer = 0.9;
 const minDistanceFromNodeTop = 0;
 const maxPageContentHeight = 907;
+const maxTextAreaWidth = 491;
 const pageFigureMax = 2;
 const noOrphanArea = 100;
 
@@ -32,6 +34,17 @@ function controlPagedJsHandler() {
         beforeParsed(content) {
             // create article and replace content
             updateStorageEventListener("Create PDF article...");
+            // clean up list elements (from internal paragraphs)
+            if(content.querySelectorAll("li") !== null) {
+                let listElements = content.querySelectorAll("li");
+                listElements.forEach(function (element) {
+                    if(element.firstElementChild !== null &&
+                    element.firstElementChild.tagName === "P") {
+                        element.innerHTML = element.firstElementChild.innerHTML;
+                    }
+                });
+            }
+            console.log(content);
             let article = createPagedArticle(content);
             content.replaceChildren();
             content.append(article);
@@ -76,7 +89,9 @@ function controlPagedJsHandler() {
                 if(textContentMap[sourceNode.id] !== undefined && !textContentMap[sourceNode.id]["isSet"]) {
                     // define nodeParams (e.g. position on page, figure references):
                     let nodeParams = defineSourceNodeParameter(sourceNode, renderNode, parsedContent);
-        
+                    if(textContentMap[sourceNode.id]["isLastTextElement"]){nodeParams["isLastTextElement"] = true;}
+                    if(textContentMap[sourceNode.id]["isLastOfSection"]){nodeParams["isLastOfSection"] = true;}
+
                     // detect splitted nodes:
                     let isSplitNode = (sourceNode.getAttribute("is-split-node") !== null) ? true : false;
                 
@@ -153,13 +168,17 @@ function controlPagedJsHandler() {
             for (let i = 0; i < footnoteSpans.length; i++) {
                 let element = footnoteSpans[i];
                 element.innerHTML = URLifyString(element.innerText);
+               
             }
             // check urls:
             checkQualityOfUrls();
 
             // test calculations of node distances (see console)
             if(devMode) {
-                testCalculationsOfNodeDistances(pageElement);
+                testCalculationsOfNodeDistances(pageElement);                
+            }
+            if(autoCorrectIteration) {
+               // not implemented: analyzeBlankSpaceOfPage(page);
             }
         }
 
@@ -174,7 +193,7 @@ function controlPagedJsHandler() {
                 let url = documentId;
                 url = (/https:/.test(url)) ? url : "https://doi.org/" + url;
             }
-
+        
             // add mouseover event class to typeset figures:
             document.querySelectorAll("FIGURE").forEach(element => {
                 if(element.firstElementChild !== null) {
@@ -205,6 +224,7 @@ function controlPagedJsHandler() {
     }
     Paged.registerHandlers(pagedJsHandler);
 }
+
 /* -----------------------------
 Prepare elements of PDF article
 --------------------------------*/
@@ -216,24 +236,30 @@ Prepare elements of PDF article
  */
 function createPagedArticle(content) {
 
-    // create article with documentId:
-    let article = document.createElement("article");
-    let documentId = getDocumentStateProperty("documentId");
-    article.id = (documentId) ? documentId : "no-id";
+    // get journal-id:
+    let journalId = content.querySelector(".journal-id").textContent;
 
     // define short title information for margin-sections:
     let articleTitle = content.querySelector(".article-title").textContent;
+    let journalTitle = content.querySelector(".journal-title").textContent;
+    let volume = content.querySelector(".volume").textContent;
     let documentRoot = document.querySelector(':root');
     documentRoot.style.setProperty('--article-title', "'" + articleTitle + "'");
+    documentRoot.style.setProperty('--journal-title', "'" + journalTitle + "'");
+    documentRoot.style.setProperty('--volume', "'" + volume + "'");
 
-    // prepare abstact container:
-    let abstractContainer = createAbstractContainer(content);
-
-    // generate components from src-content:
-    let coverPage = createCoverPage(abstractContainer);
-    let titlePage = createTitlePage(content);
+    // prepare article components:
+    let titleElements = createTitleElements(content);
+    let authorsElement = createAuthorsElement(content);
+    let contributorsElement = createContributorsElement(content);
+    let abstractCollection = createAbstractCollection(content);
+    let abstractBox;
+    if(abstractCollection.querySelector(".abstract") !== null) {
+        abstractBox = abstractCollection.querySelector(".abstract");
+    } else {
+        abstractBox = document.createElement("div")
+        abstractBox.classList.add("abstract", "warning-box")};
     let referenceList = createReferenceList(content);
-    let transAbstracts = abstractContainer.querySelectorAll(".trans-abstract");
     let contributorsDetails = createContributorsDetails(content, true);
     let articleMetaSection = createArticleMetaSection(content);
     let imprintSection = createImprintSection(content);
@@ -241,60 +267,62 @@ function createPagedArticle(content) {
     let figureSection = recreateFiguresSection(content);
     let sourceOfIllustrations = createSourceOfIllustrations(figureSection);
 
-    // remove poster-image from figureSection:
-    if(figureSection.querySelector("#poster-image") !== null) {
-        figureSection.querySelector("#poster-image").remove();
+    // create article with documentId:
+    let article = document.createElement("article");
+    let documentId = getDocumentStateProperty("documentId");
+    article.id = (documentId) ? documentId : "no-id";
+
+    // append front-part to article:
+    if(journalId === "e-DAI-F") {
+        article.appendChild(createIssueFrontmatterPage());
+        article.appendChild(titleElements);
+        article.appendChild(authorsElement);
+        article.appendChild(contributorsElement);
+        article.appendChild(abstractBox);
+    // default:
+    } else {
+        article.appendChild(abstractBox);
+        let titleHeader = document.createElement("div");
+        titleHeader.id = "title-header";
+        titleHeader.append(authorsElement);
+        titleHeader.append(titleElements);
+        titleHeader.append(contributorsElement);
+        article.appendChild(titleHeader);
     }
 
-    // format notes as foot- or endnotes:
-    let noteSection = document.createElement("div");
-    if(content.querySelector(".footnotes-section") !== null) {
-        if (setEndnotes) {
-            noteSection = content.querySelector(".footnotes-section");
-            noteSection.id = "endnotes-section";
-            noteSection.classList.remove("footnotes-section");
-        } else {
-            reformatFootnotes(content);
-        }
-    }
-
-    // clean up list elements (from internal paragraphs)
-    if(content.querySelectorAll("li") !== null) {
-        let listElements = content.querySelectorAll("li");
-        listElements.forEach(function (element) {
-            if(element.firstElementChild !== null &&
-            element.firstElementChild.tagName === "P") {
-                element.innerHTML = element.firstElementChild.innerHTML;
-            }
-        });
-    }
-
-    // collect appendices in meta-element:
+    // append main-text part:
+    if(journalId !== "e-DAI-F") reformatFootnotes(content);
+    article.innerHTML += content.querySelector("#html-wrapper").outerHTML;
+  
+    // create meta-container for back-part
     let meta = document.createElement("div");
     meta.classList.add("meta-section");
-    meta.appendChild(sourceOfIllustrations);
-    if(transAbstracts !== null) {
-        transAbstracts.forEach(transAbstract => {
-            meta.appendChild(transAbstract);
-        });
+
+    let transAbstracts = abstractCollection.querySelectorAll(".trans-abstract");
+    if(transAbstracts !== null) {transAbstracts.forEach(transAbstract => {
+        meta.appendChild(transAbstract);});
     }
     meta.appendChild(contributorsDetails);
     meta.appendChild(articleMetaSection);
     meta.appendChild(imprintSection);
-    if(createToC) {
-        meta.appendChild(tocList);
+    if(createToC) {meta.appendChild(tocList);}
+
+    if(journalId === "e-DAI-F") {
+        referenceList.classList.remove("meta-section");
+        sourceOfIllustrations.classList.remove("meta-section");
     }
-    // append all sections to article:
-    article.appendChild(coverPage);
-    article.appendChild(titlePage);
-    article.innerHTML += content.querySelector
-        ("#content-body").outerHTML;
+
+    // append back-part / appendixes:
     article.appendChild(referenceList);
-    article.append(noteSection);
+    article.appendChild(sourceOfIllustrations);
     article.appendChild(meta);
     article.append(figureSection)
 
     // remove or hide redundant elements:
+    if(article.querySelectorAll("#poster-image").length > 0) {
+        article.querySelectorAll("#poster-image").forEach(element => {
+            element.remove();});
+    }
     if(article.querySelector(".front") != null) {
         article.querySelector(".front").remove();
     }
@@ -309,50 +337,137 @@ function createPagedArticle(content) {
 }
 
 /**
- * create cover-page as div-element:
+ * create issue frontmatter page for e-fb as div-element:
  * @param {DocumentFragment} content: document-fragment made from original DOM
  * @returns {HTMLElement} coverPage with abstractSection
  */
-function createCoverPage(abstractContainer) {
+function createIssueFrontmatterPage() {
 
-    let coverPage = document.createElement("div");
-    coverPage.classList.add("cover-page");
+    let issueFrontmatterPage = document.createElement("div");
+    issueFrontmatterPage.id = "issue-frontmatter-page";
 
-    let abstractBox = abstractContainer.querySelector(".abstract");
-    if(abstractBox !== null) {
-        coverPage.append(abstractBox);
+    // create issue
+    let journalTitle = document.createElement("h1");
+    journalTitle.id = "journal-title";
+    journalTitle.textContent = "E-Forschungsberichte";
+
+    issueFrontmatterPage.appendChild(journalTitle);
+
+    /* ..... */
+
+    return (issueFrontmatterPage);
+}
+
+function createTitleElements(content) {
+
+    // prepae titleElemens container:
+    let titleElements = document.createElement("div");
+    titleElements.id = "title-elements";
+
+    // get title and subtitle:
+    let title = content.querySelector(".article-title");
+    let subtitle = content.querySelector(".article-subtitle");
+
+    let titleElement = document.createElement("h1");
+    titleElement.classList.add("title-header-title", "text-content");
+    titleElement.innerHTML = (title !== null) ? title.textContent : "[Kein Titel]";
+
+    // append to titleElements container
+    titleElements.append(titleElement);
+    
+    let subtitleElement;
+    if(subtitle !== null) {
+        subtitleElement = document.createElement("h2");
+        subtitleElement.classList.add("title-header-subtitle", "text-content");
+        subtitleElement.innerHTML = subtitle.textContent;
+        // append to titleElements container
+        titleElements.append(subtitleElement)
     }
-    else {
-        let abstractBox = document.createElement("div");
-        abstractBox.classList.add("abstract-box");
-        abstractBox.classList.add("warning-box");
-        abstractBox.textContent = "[ABSTRACT (in language of text) MISSING]";
-        coverPage.append(abstractBox);
+    return(titleElements);
+}
+
+function createAuthorsElement(content) {
+    
+    let authorsElement = document.createElement("div");
+    authorsElement.classList.add("title-header-authors", "text-content");
+    
+    // get article contributors (e.g. authors):
+    let authors = [];
+    authors = content.querySelectorAll(".contrib[contrib-type='author']");
+
+    // collect names of each author:
+    let authorsCollection = [];
+    if(authors.length) {
+        for (let i = 0; i < authors.length; i++) {
+            let givenName;
+            let surName;
+            if(authors[i].querySelector(".given-names") !== null) {
+                givenName = authors[i].querySelector(".given-names").textContent;
+            }
+            if(authors[i].querySelector(".surname") !== null) {
+                surName = authors[i].querySelector(".surname").textContent;
+            }
+            authorsCollection.push(givenName + " " + surName);
+        }
     }
-    return (coverPage);
+
+    // populate authorsElement with content:
+    authorsElement.innerHTML = (authorsCollection.length) ? authorsCollection.join(", ") : "[Keine Autoren]";
+
+    return(authorsElement);
+}
+
+function createContributorsElement(content) {
+
+    // create contributorsElement and get document lang:
+    let lang = document.documentElement.lang;
+    let contributorsElement = document.createElement("p");
+    contributorsElement.className = "title-header-contributors";
+
+    // get article contributors (e.g. authors):
+    let contributors = [];
+    contributors = content.querySelectorAll(".contrib[contrib-type='co-author']");
+
+    // collect names of each contributor (e.g. co-author):
+    let contributorsCollection = [];
+    if(contributors.length) {
+        for (let i = 0; i < contributors.length; i++) {
+            let givenName = contributors[i].querySelector(".given-names").textContent;
+            let surName = contributors[i].querySelector(".surname").textContent;
+            contributorsCollection.push(givenName + " " + surName);
+        }
+    }
+
+    // populate authorsElement with content:
+    if(contributorsCollection.length && lang !== undefined) {
+        contributorsElement.innerHTML = contributorsPrepositions[lang] + " " + contributorsCollection.join(", ");
+    }
+
+    return(contributorsElement);
 }
 
 /**
- * create abstract container
+ * create abstract collection (abstracts, trans-abstracts, keywords)
  * @param {DocumentFragment} content: document-fragment made from original DOM
  * @returns {HTMLElement} all abstracts and trans-abstracts (multiple) as abstract-boxes
- * combined in one container
  */
-function createAbstractContainer(content) {
+function createAbstractCollection(content) {
 
-    let abstractContainer = document.createElement("div");
-    abstractContainer.id = "abstract-container";
+    let abstractCollection = document.createElement("div");
+    abstractCollection.id = "abstract-collection";
 
     // query abstract content 
     let abstracts = content.querySelectorAll(".abstract, .trans-abstract");
     if(abstracts.length) {
         let kwdGroup = content.querySelectorAll(".kwd-group");
         abstracts.forEach(function(abstract) {
-            // generate abstract box:
+            // create abstract box:
             let abstractBox = createAbstractBox(abstract, kwdGroup);  
+            
             // re-classify abstractHeadline:
-            let abstractHeadline = abstractBox.querySelector(".title");
-            if(abstractHeadline !== null) {
+            let abstractHeadline;
+            if(abstractBox.querySelector(".title") !== null) {
+                abstractHeadline = abstractBox.querySelector(".title");
                 if(/abstract/.test(abstractBox.className)) {
                     abstractHeadline.classList.add("abstract-headline");
                 }
@@ -362,10 +477,10 @@ function createAbstractContainer(content) {
                 abstractHeadline.classList.remove("title");
             }
             // append abstractBoxes (one up to three)
-            abstractContainer.appendChild(abstractBox);
+            abstractCollection.appendChild(abstractBox);
         });
     }
-    return(abstractContainer);
+    return(abstractCollection);
 }
 
 /**
@@ -377,10 +492,6 @@ function createAbstractContainer(content) {
  */
 function createAbstractBox(abstract, kwdGroup) {
 
-    // create abstract-section:
-    let abstractBox = document.createElement("div");
-    abstractBox.classList.add("abstract-box");
-
     if(abstract !== null) {
         // check maxLength of abstractText
         if(abstract.querySelectorAll(".abstract-text") !== null) {
@@ -389,6 +500,16 @@ function createAbstractBox(abstract, kwdGroup) {
                 checkMaxLengthOfInnerText(abstractText[0], maxAbstractLength);
             }
         }
+
+        // add generic abstract-title if missing:
+        let abstractTitle;
+        if(abstract.querySelector(".title") == null) {
+            abstractTitle = document.createElement("h3");
+            abstractTitle.classList.add("title");
+            abstractTitle.textContent = "Abstract (" + abstract.getAttribute("lang") + ")";
+            abstract.insertAdjacentElement("afterbegin", abstractTitle);
+        }
+
         // get keywordsSection
         let keywordsSection = document.createElement("div");
         keywordsSection.classList.add("kwd-group");
@@ -399,10 +520,16 @@ function createAbstractBox(abstract, kwdGroup) {
                 // if keywords correspond to abstractLang
                 if(keywordsLang === abstractLang) {
                     kwHeadline = kwdGroup[i].querySelector(".title");
-                    if(kwHeadline !== null) {
-                        kwHeadline.classList.add("keywords-headline");
-                        keywordsSection.appendChild(kwHeadline);
+                    if(kwHeadline == null) {
+                        // generate default title:
+                        kwHeadline = document.createElement("h3");
+                        if(defaultTitles["keywords"][keywordsLang] !== undefined)  {
+                            kwHeadline.textContent = defaultTitles["keywords"][keywordsLang];
+                        } else (kwHeadline.textContent = "Keywords")
                     }
+                    kwHeadline.classList.add("keywords-headline");
+                    keywordsSection.appendChild(kwHeadline);
+
                     let keywords = kwdGroup[i].querySelectorAll(".keyword");
                     // add each keyword (span> to keywordSection:
                     for (let i = 0; i < keywords.length; i++) {
@@ -437,90 +564,6 @@ function createAbstractBox(abstract, kwdGroup) {
 }
 
 /**
- * create titlePage: upper part of first page with text:
- * @param {DocumentFragment} content document-fragment made from original DOM
- * @returns {HTMLElement} titlePage as div-container with title and contributors
- */
-function createTitlePage(content) {
-
-    // get title information:
-    let title = content.querySelector(".article-title");
-    let subtitle = content.querySelector(".article-subtitle");
-    let lang = document.documentElement.lang;
-
-    // get article contributors (e.g. authors):
-    let authors = [];
-    let contributors = [];
-    authors = content.querySelectorAll(".contrib[contrib-type='author']");
-    contributors = content.querySelectorAll(".contrib[contrib-type='co-author']");
-
-    /*
-    if(content.querySelector(".contrib-group[content-type='article-contributors']") !== null) {
-        let articleContributors = content.querySelector(".contrib-group[content-type='article-contributors']");
-        authors = articleContributors.querySelectorAll(".contrib[contrib-type='author']");
-        contributors = articleContributors.querySelectorAll(".contrib[contrib-type='co-author']");
-    }
-    */
-   
-    // collect names of each author:
-    let authorsCollection = [];
-    if(authors.length) {
-        for (let i = 0; i < authors.length; i++) {
-            let givenName;
-            let surName;
-            if(authors[i].querySelector(".given-names") !== null) {
-                givenName = authors[i].querySelector(".given-names").textContent;
-            }
-            if(authors[i].querySelector(".surname") !== null) {
-                surName = authors[i].querySelector(".surname").textContent;
-            }
-            authorsCollection.push(givenName + " " + surName);
-        }
-    }
-    // collect names of each contributor (e.g. co-author):
-    let contributorsCollection = [];
-    if(contributors.length) {
-        for (let i = 0; i < contributors.length; i++) {
-            let givenName = contributors[i].querySelector(".given-names").textContent;
-            let surName = contributors[i].querySelector(".surname").textContent;
-            contributorsCollection.push(givenName + " " + surName);
-        }
-    }
-
-    // create title page elements and fill with content:
-    let titlePage = document.createElement("div");
-    titlePage.id = "page-header";
-    let titleElement = document.createElement("h1");
-    titleElement.classList.add("page-title", "text-content");
-    titleElement.innerHTML = (title !== null) ? title.textContent : "[Kein Titel]";
-    
-    let subtitleElement;
-    if(subtitle !== null) {
-        subtitleElement = document.createElement("h1");
-        subtitleElement.classList.add("page-subtitle", "text-content");
-        subtitleElement.innerHTML = subtitle.textContent;
-    }
-    
-    // create contributors elements and fill with content:
-    let authorsElement = document.createElement("h1");
-    authorsElement.classList.add("page-authors", "text-content");
-    authorsElement.innerHTML = (authorsCollection.length) ? authorsCollection.join(", ") : "[Keine Autoren]";
-    let contributorsElement = document.createElement("p");
-    contributorsElement.className = "page-contributors";
-    if(contributorsCollection.length && lang !== undefined) {
-        contributorsElement.innerHTML = contributorsPrepositions[lang] + " " + contributorsCollection.join(", ");
-    }
-
-    // append all elements to titlePage:
-    titlePage.append(authorsElement);
-    titlePage.append(titleElement);
-    if (subtitle !== null) {titlePage.append(subtitleElement)};
-    titlePage.append(contributorsElement);
-
-    return (titlePage);
-}
-
-/**
  * create ToC: table of contents by headlines:
  * @param {DocumentFragment} content document-fragment made from original DOM
  * @returns {HTMLElement} toc: table of content; currently not used for dai-journals
@@ -534,7 +577,7 @@ function createToCFromHeadings(content) {
         tocListTitle.id = "contents";
         tocListTitle.classList.add("title-appendix");
         let lang = document.documentElement.lang;
-        tocListTitle.innerHTML = titlesOfAppendices["contents"][lang];
+        tocListTitle.innerHTML = defaultTitles["contents"][lang];
         toc.append(tocListTitle);
 
         let tocList = document.createElement("ul");
@@ -628,29 +671,13 @@ function createReferenceList(content) {
 
     let referenceSection = content.querySelector(".reference-section");
     let references = []; // no ref-list
-    if(referenceSection !== null) {
-        references = content.querySelectorAll(".reference");
-    };
+    if(referenceSection !== null) {references = content.querySelectorAll(".reference");};
 
-    // checkout ref-list title
-    let refListTitle;
-    if(references.length) {
-        if (referenceSection && referenceSection.querySelector(".title") !== null) {
-            refListTitle = referenceSection.querySelector(".title");
-            refListTitle.classList.add("main-title");
-        }
-        else {
-            refListTitle = document.createElement("h3");
-            let lang = document.documentElement.lang;
-            refListTitle.innerHTML = titlesOfAppendices["references"][lang];
-            refListTitle.classList.add("main-title");
-        }
-    } else {
-        refListTitle = document.createElement("h3");
-        let lang = document.documentElement.lang;
-        refListTitle.innerHTML = "[NO-REFERENCES]";
-        refListTitle.classList.add("main-title");
-    }
+    // add ref-list title
+    let lang = document.documentElement.lang;
+    let refListTitle = document.createElement("h3")
+    refListTitle.innerHTML = defaultTitles["references"][lang];
+    refListTitle.classList.add("main-section-title");
     referenceList.appendChild(refListTitle)
 
     // recreate reference elements:
@@ -728,8 +755,7 @@ function recreateFiguresSection(content) {
     // process each figure element:
     for (let i = 0; i < figures.length; ++i) {
         let img = figures[i].querySelector("img");
-        let figCaption = figures[i].querySelector("figCaption");
-    
+      
         let attribution;
         if(figures[i].querySelector(".attribution") !== null) {
             attribution = figures[i].querySelector(".attribution");
@@ -738,33 +764,62 @@ function recreateFiguresSection(content) {
             attribution = document.createElement("p");
             attribution.classList.add("attribution");
             attribution.classList.add("warning-text");
-            attribution.innerHTML = "[CREDIT ATTRIBUTION MISSING]";
+            attribution.textContent = "[CREDIT ATTRIBUTION MISSING]";
         }
 
-        let label = figures[i].querySelector(".label");
+        if(figures[i].querySelector(".license-p") !== null) {
+            licensePara = figures[i].querySelector(".license-p");
+        }
+        else {
+            licensePara = document.createElement("p");
+            licensePara.classList.add("license-p");
+            licensePara.textContent = "[LICENSE MISSING]";
+        }
+
+        let label;
+        if(figures[i].querySelector(".label") !== null) {
+            label = figures[i].querySelector(".label");
+        } else {
+            label = document.createElement("span");
+            label.textContent = "[LABEL MISSING]";
+        }
         label.classList.add("img-label");
 
-        // create figNumber with counter-value:
+        // clone label for separate fig-number:
         let figNumber = label.cloneNode(true);
         figNumber.classList.remove("img-label");
         figNumber.classList.add("fig-number");
         let counter = figNumber.textContent.slice(5);
         figNumber.innerHTML = counter;
 
+        // add ": " for label within figCaption:
+        label.textContent = label.textContent + ": ";
+
         // check length of figCaption text:
+        let figCaption;
+        let figCaptionText;
+        if(figures[i].querySelector("figCaption") !== null) {
+            figCaption = figures[i].querySelector("figCaption");
+        }
+        else {
+            figCaption = document.createElement("figCaption");
+            figCaptionText = document.createElement("p");
+            figCaption.textContent = "[CAPTION MISSING]";
+            figCaption.appendChild(figCaptionText);
+        }
         checkMaxLengthOfInnerText(figCaption.firstElementChild, maxCaptionLength);
-        
+       
         // reorder label and figCaption:
         figCaption.firstElementChild.classList.add("caption-text");
-        label.innerHTML = label.innerHTML + ": ";
         figCaption.firstElementChild.insertAdjacentElement("afterbegin", label);
-    
+     
         // reappend figure elements:
         figures[i].innerHTML = "";
         figures[i].append(img);
         figures[i].append(figNumber);
         figures[i].append(figCaption);
         figures[i].append(attribution);
+        figures[i].append(licensePara);
         figureSection.append(figures[i]);
     }
     return(figureSection);
@@ -781,14 +836,15 @@ function createSourceOfIllustrations(figureSection) {
     // prepare section elements:
     let sourceOfIllustrations = document.createElement("div");
     sourceOfIllustrations.id = "source-of-illustrations";
+    sourceOfIllustrations.classList.add("meta-section");
 
     if(figureSection) {
         // (re)create title for source of illustrations:
         let lang = document.documentElement.lang;
         let sourceOfIllustrationsTitle = document.createElement("h3");
-        sourceOfIllustrationsTitle.classList.add("main-title");
-        sourceOfIllustrationsTitle.classList.add("title-appendix");
-        sourceOfIllustrationsTitle.innerHTML = titlesOfAppendices["sourceOfIllustrations"][lang];
+        sourceOfIllustrationsTitle.classList.add("main-section-title");
+        // sourceOfIllustrationsTitle.classList.add("title-appendix");
+        sourceOfIllustrationsTitle.innerHTML = defaultTitles["sourceOfIllustrations"][lang];
         sourceOfIllustrations.appendChild(sourceOfIllustrationsTitle);
 
        // append credits for each figure
@@ -797,8 +853,11 @@ function createSourceOfIllustrations(figureSection) {
            let label = figures[i].querySelector(".img-label");
            let labelCloned = label.cloneNode(true);
            let attribution = figures[i].querySelector(".attribution");
+           let licensePara = figures[i].querySelector(".license-p");
+           attribution.innerText += " [" + licensePara.textContent + "]";
            attribution.insertAdjacentElement("afterbegin", labelCloned);
-
+           licensePara.remove();
+          
            let credits = document.createElement("div");
            credits.classList.add("credits");
            credits.append(attribution);
@@ -830,7 +889,7 @@ function createContributorsDetails(content, isArticle) {
         let contributorsDetailsTitle = document.createElement("h3");
         contributorsDetailsTitle.classList.add("title-appendix");
         let lang = document.documentElement.lang;
-        contributorsDetailsTitle.innerHTML = titlesOfAppendices["authorDetails"][lang];
+        contributorsDetailsTitle.innerHTML = defaultTitles["authorDetails"][lang];
         contributorsDetails.appendChild(contributorsDetailsTitle);
 
         // get article authors and contributors
@@ -966,24 +1025,15 @@ function createArticleMetaSection(content) {
     let articleMetaSectionTitle = document.createElement("h3");
     articleMetaSectionTitle.classList.add("title-appendix");
     let lang = document.documentElement.lang;
-    articleMetaSectionTitle.innerHTML = titlesOfAppendices["metadata"][lang];
+    articleMetaSectionTitle.innerHTML = defaultTitles["metadata"][lang];
     articleMetaSection.appendChild(articleMetaSectionTitle);
-
-    // add doi-link:
-    let doiLink;
-    let doiUrl = getDocumentStateProperty("documentId");
-    if(doiUrl) {
-        doiLink = document.createElement("a");
-        doiLink.classList.add("metadata-doi-link");
-        doiUrl = (/https:/.test(doiUrl)) ? doiUrl : "https://doi.org/" + doiUrl;
-        doiLink.href = doiUrl;
-        doiLink.innerHTML = doiUrl;
-        articleMetaSection.appendChild(doiLink);
-    }
 
     // add basic article meta:
     let articleMeta = content.querySelector(".article-meta");
     if(articleMeta !== null) {
+        if(articleMeta.querySelector(".article-id") !== null) {
+            articleMetaSection.appendChild(articleMeta.querySelector(".article-id"));
+        }
         if(articleMeta.querySelector(".article-title") !== null) {
             articleMetaSection.appendChild(
                 articleMeta.querySelector(".article-title"));
@@ -996,18 +1046,38 @@ function createArticleMetaSection(content) {
             articleMetaSection.appendChild(
                 articleMeta.querySelector(".pub-date"));
         }
-        if(articleMeta.querySelector(".copyright-statement[content-type='online']")) {
-             articleMetaSection.appendChild(
-                articleMeta.querySelector(".copyright-statement[content-type='online']"));
+        if(articleMeta.querySelector(".copyright-statement:not([content-type='print'])")) {
+            articleMetaSection.appendChild(articleMeta.querySelector(".copyright-statement:not([content-type='print'])"));
+        }
+        if(articleMeta.querySelector(".license:not([license-type='print'])")) {
+            articleMetaSection.appendChild(articleMeta.querySelector(".license:not([license-type='print'])"));
+        }
+        if(articleMeta.querySelectorAll(".license-p").length > 0) {
+            articleMeta.querySelectorAll(".license-p").forEach(element => {
+                articleMetaSection.appendChild(element);
+            });
         }
     }
 
-    // add system / format notice:
-    let notice = document.createElement("p");
-    notice.classList.add("system-notice");
-    notice.innerHTML = systemNotice["pdf"];
-    articleMetaSection.appendChild(notice);
-
+    // parse customMetaGroup:
+    let customMetas;
+    let customMetaSection = document.createElement("div");
+    customMetaSection.classList.add("custom-meta-section")
+    if(articleMeta.querySelector(".custom-meta-group") !== null) {
+        customMetas = articleMeta.querySelectorAll(".custom-meta");
+        for (let i = 0; i < customMetas.length; i++) {
+            let customMeta = customMetas[i];
+        
+            if(/label/.test(customMeta.className)) {
+                customMeta.remove();
+            }
+            if(/url/.test(customMeta.className)) {
+                customMeta.style.display = "none";
+            }
+            customMetaSection.appendChild(customMeta);
+        }
+        articleMetaSection.appendChild(customMetaSection);
+    }
     return (articleMetaSection);
 }
 
@@ -1028,7 +1098,7 @@ function createImprintSection(content) {
     let imprintSectionTitle = document.createElement("h3");
     imprintSectionTitle.classList.add("title-appendix");
     let lang = document.documentElement.lang;
-    imprintSectionTitle.innerHTML = titlesOfAppendices["imprint"][lang];
+    imprintSectionTitle.innerHTML = defaultTitles["imprint"][lang];
     imprintSection.appendChild(imprintSectionTitle);
 
     // collect journal information:
@@ -1049,11 +1119,6 @@ function createImprintSection(content) {
             journalDOILink.href = journalDOI.innerText;
             journalDOILink.textContent = journalDOI.innerText;
             journalTitle.appendChild(journalDOILink);
-        }
-        let publishingHistory;
-        if(journalMeta.querySelector(".publishing-history") !== null) {
-            publishingHistory = journalMeta.querySelector(".publishing-history");
-            journalTitle.appendChild(publishingHistory);
         }
         imprintSection.appendChild(journalTitle);
     }
@@ -1079,17 +1144,27 @@ function createImprintSection(content) {
     if(journalMeta.querySelector(".custom-meta-group") !== null) {
         customMetas = journalMeta.querySelectorAll(".custom-meta");
         for (let i = 0; i < customMetas.length; i++) {
-            let customMeta = customMetas[i];
-            if(/label/.test(customMeta.className)) {
-                customMeta.classList.add("role");
+            let metaName = customMetas[i].querySelector(".meta-name");
+            if(/label/.test(metaName.textContent)) {
+                customMetas[i].style.display = "none";
             }
-            if(/url/.test(customMeta.className)) {
-                customMeta.style.display = "none";
+            if(/url/.test(metaName.textContent)) {
+                customMetas[i].style.display = "none";
             }
-            customMetaSection.appendChild(customMeta);
+            if(/publishing-history/.test(metaName.textContent)) {
+                customMetas[i].style.display = "none";
+            }
+            customMetaSection.appendChild(customMetas[i]);
         }
         imprintSection.appendChild(customMetaSection);
     }
+
+    // add system / format notice:
+    let notice = document.createElement("p");
+    notice.classList.add("system-notice");
+    notice.innerHTML = systemNotice["pdf"];
+    imprintSection.appendChild(notice);
+
     return (imprintSection);
 }
 
@@ -1110,55 +1185,57 @@ function createTextContentMap(parsedContent, previousMap) {
     let hasSectionId = [];
     let numFigRefsSection = 0;
     let numTextElementsSection = 0;
-    let isFirstOfSection;
 
     // set hash for current html document:
     let documentId = parsedContent.querySelector("article").id;
     textContentMap["documentId"] = documentId;
 
-    // get content-body
-    let contentBody = parsedContent.querySelector("#content-body");
+    // get html-wrapper
+    let htmlWrapper = parsedContent.querySelector("#html-wrapper");
 
     // elements defined as text-elements:
-    let textElementsSelector = "p,li,table,pre,code,.boxed-text,.title";
+    let textElementsSelector = "p[id],li,table,pre,.boxed-text,.title";
 
-    // select text-content elements:;
-    if(contentBody.querySelectorAll(textElementsSelector) !== null) {
-        let textElements = contentBody.querySelectorAll(textElementsSelector);        
+    // select text elements:
+    if(htmlWrapper.querySelectorAll(textElementsSelector) !== null) {
+        let textElements = htmlWrapper.querySelectorAll(textElementsSelector);        
         // process each text element
         for (let i = 0; i < textElements.length; i++) {
              // add text-content class to text element
             let element = textElements[i];
             element.classList.add("text-content");
 
+            // mark last-text-content-element = last regular page:
+            if(i + 1 == textElements.length) {
+                element.classList.add("last-of-us");
+            }
             // parse references for each text element:
             let references = element.querySelectorAll("a.fig-ref");
             let figRefs = [];
             if (references) {
                 for (let index = 0; index < references.length; index++) {
+                    let specificUse = references[index].getAttribute("data-specific-use");
                     // get figure ids from href/hash:
                     let reference = references[index].hash.slice(1); // e.g. "f-1"
                     // avoid duplicates:
-                    if (!allFigRefs.includes(reference)) {
+                    if (!allFigRefs.includes(reference)
+                    // no fig-refs excluded from typeset
+                    && specificUse !== "ref-only") {  
                         figRefs.push(reference);
                         allFigRefs.push(reference);
                     }
                 }
             }
-       
             // count amout of figures and text elements within section
             let parent = element.parentElement;
             if (parent && parent.tagName === "SECTION") {
                 if (hasSectionId.includes(parent.id)) {
                     // same section
-                    isFirstOfSection = false;
                     numFigRefsSection = numFigRefsSection + figRefs.length;
                     numTextElementsSection = numTextElementsSection + 1;
                 }
                 else {
                     // new section
-                    isFirstOfSection = true;
-                    element.classList.add("first-of-section");
                     hasSectionId.push(parent.id);
                     numFigRefsSection = figRefs.length;
                     numTextElementsSection = 1;
@@ -1173,7 +1250,9 @@ function createTextContentMap(parsedContent, previousMap) {
                 "isSet": false,
                 "style": (previousMap[element.id] !== undefined) ? previousMap[element.id]["style"] : false,
                 "class": (previousMap[element.id] !== undefined) ? previousMap[element.id]["class"] : false,
-                "isFirstOfSection": isFirstOfSection,
+                "isLastTextElement": (textElements.length-1 === i),
+                "isFirstOfSection": (parent.firstElementChild == element),
+                "isLastOfSection": (parent.lastElementChild == element),
                 "numFigRefsSection": numFigRefsSection,
                 "numTextElementsSection": numTextElementsSection
             };
@@ -1356,7 +1435,6 @@ function sortNextFigRefsByFigurePosition(nextFigRefs) {
 function pushFigRefToNextNode(currentNodeId, figureId) {
 
     if(currentNodeId !== undefined && figureId !== undefined) {
-        
         // get textContentMap
         let textContentMap = JSON.parse(localStorage.getItem("text-content-map"));
 
@@ -1409,8 +1487,8 @@ Control page layout of element nodes
  */
 function defineSourceNodeParameter(sourceNode, renderNode, parsedContent) {
 
-    // define distribution ratio of section (relation between figures to text-content):
-    let distributionRatio = defineDistributionRatioOfSection(sourceNode);
+    // define figure density of section (relation between figures to text-content):
+    let figureDensity = defineFigureDensityOfSection(sourceNode);
 
     // define page contexts and distances of source node:
     let contexts = definePageContextsOfSourceNode(sourceNode, renderNode);
@@ -1431,35 +1509,39 @@ function defineSourceNodeParameter(sourceNode, renderNode, parsedContent) {
     let nodeParams = {
         "sourceNode": sourceNode,
         "renderNode": renderNode,
-        "distributionRatio": distributionRatio,
+        "figureDensity": figureDensity,
         "figRefs": nextFigRefs,
         "numFigRefs": nextFigRefs.length,
         "contexts": contexts,
         "currentFigure": currentFigure,
-        "nextFigure": nextFigure
+        "nextFigure": nextFigure,
+        "parsedContent": parsedContent
     };
     return(nodeParams);
 }
 
 /**
- * define distribution ratio of section
+ * define figure density of section
  * @param {node} sourceNode original node from parsedContent currently rendered
- * @returns {number} distributionRatio: decimal number (between 0 and 1) decribing 
- * the ratio between amount of figures, referenced in all textElements of each section,
- * in relation to the amout of these textElements (value currently not used / evaluated).
+ * @returns {number} figureDensity: decimal number decribing the ratio between amount of figures,
+ * referenced in all textElements of each section, in relation to the amout of these textElements 
  */
-function defineDistributionRatioOfSection(sourceNode) {
+function defineFigureDensityOfSection(sourceNode) {
 
-    let distributionRatio;
+    let figureDensity;
     let textContentMap = JSON.parse(localStorage.getItem("text-content-map"));
-
+ 
     if(textContentMap[sourceNode.id]) {
         let textElement = textContentMap[sourceNode.id];
         let numTextElements = textElement["numTextElementsSection"];
         let numFigRefs = textElement["numFigRefsSection"];
-        distributionRatio = (numTextElements !== 0) ? numFigRefs / numTextElements : 0;
+        if(numTextElements !== 0) {
+            figureDensity = numFigRefs / numTextElements;
+        } else {
+            figureDensity = 0;
+        }
     }
-    return(distributionRatio);
+    return(figureDensity);
 }
 
 /**
@@ -1727,8 +1809,7 @@ function calculateDistancesOfSplitNodes(contexts, sourceNode) {
     // redefine attributes of sourceNode (split-parent):
     let fromNodeBottomBefore = elementSetBefore.getAttribute("fromNodeBottom");
     if(fromNodeBottomBefore === null) {
-
-        let pageHeader = document.querySelector("#page-header");
+        let pageHeader = document.querySelector("#title-header");
         let pageHeaderContexts = definePageContextsOfSourceNode(pageHeader);
         pageHeaderContexts = calculateNodeDistances(pageHeaderContexts, pageHeader);
         distanceFromNodeTop = pageHeaderContexts["distanceFromNodeBottom"];
@@ -1892,7 +1973,7 @@ function testCalculationsOfNodeDistances(pageElement) {
     
     let pageId = (pageElement !== null) ? pageElement.id : false;
     let pageContent = pageElement.querySelector(".pagedjs_page_content");
-    let selector = ".text-content:not(.page-title,.page-subtitle,.page-authors),figure";
+    let selector = ".text-content:not(.title-header-title,.title-header-subtitle,.title-header-authors),figure";
     let elementsOfPage = pageContent.querySelectorAll(selector);
     
     for (let i = 0; i < elementsOfPage.length; i++) {
@@ -2112,7 +2193,8 @@ function processFigureEnhancing(nodeParams) {
     let contexts = nodeParams["contexts"];
     let currentFigure = nodeParams["currentFigure"];
     let nextFigure = nodeParams["nextFigure"];
-    
+    let figureMap = JSON.parse(localStorage.getItem("figure-map"));
+
     // preset default typesetting classes:
     if(currentFigure) setFigureTypesettingClass(currentFigure);
     if(nextFigure) setFigureTypesettingClass(nextFigure);
@@ -2131,7 +2213,7 @@ function processFigureEnhancing(nodeParams) {
         // check if figures fit in current page frame (remaining space)
         let fits = figuresFitInCurrentPageFrame(set, nodeParams);
 
-        // add target figureRefs and distRatio to source- and renderNode:
+        // add target figureRefs and figureDensity to source- and renderNode:
         let allRefAttributes;
         if(nodeParams["figRefs"] && nodeParams["figRefs"].length) {
             allRefAttributes = "targetFigRefs: " + nodeParams["figRefs"].join(", ") +
@@ -2143,18 +2225,34 @@ function processFigureEnhancing(nodeParams) {
         sourceNode.setAttribute('data-after', allRefAttributes);
         renderNode.setAttribute('data-after', allRefAttributes);
 
-        // forced: set all figures ignoring context calculation:
-        if(setAllFigures) {
-            if(currentFigure) {
+        /* set each figure ignoring context calculation either in case of 
+        high figure density or forced (setAllFigures=true) */
+        let figureDensity = nodeParams["figureDensity"];
+        if(setAllFigures || figureDensity >= figureDensityThreshold) {
+            if(currentFigure && !/float/.test(classes["beforeCurrent"])
+            && !figureMap[currentFigure.id]["typesettingClass"]) {
                 fits["currentFigure"] = true;
                 setLayoutSpecsOfFigure(currentFigure, "inset");
             }
-            if(nextFigure) {
+            if(nextFigure && !/float/.test(classes["current"])
+            && !figureMap[nextFigure.id]["typesettingClass"]) {
                 fits["nextFigure"] = true;
-                setLayoutSpecsOfFigure(nextFigure, "inset");
+                setLayoutSpecsOfFigure(nextFigure, "inset"); 
+            }
+            
+        }
+
+        // keep global figure order
+        if(keepGlobalFigOrder) {
+            if(currentFigure && !isGlobalFigureOrder(currentFigure)) {
+                fits["currentFigure"] = false;
+            }
+            if(nextFigure && !isGlobalFigureOrder(nextFigure)) {
+                fits["nextFigure"] = false;
             }
         }
-        // execute instructions:
+
+        // process inserts or skip
         if(fits["currentFigure"] && fits["nextFigure"]) {
             addTemporaryMarginToFloatingFigure(nextFigure, contexts);
             addTemporaryMarginToFloatingFigure(currentFigure, contexts);
@@ -2180,6 +2278,20 @@ function processFigureEnhancing(nodeParams) {
             pushFigRefToNextNode(sourceNode.id, currentFigure.id);
             pushFigRefToNextNode(sourceNode.id, nextFigure.id);
         }
+
+        // last text element => place all figures not set before:
+        let isLastTextElement = nodeParams["isLastTextElement"];
+        if(isLastTextElement) {
+
+            // flip sorting order due to reversed inser
+            let nextFigRefs = nodeParams["figRefs"].reverse();
+            let parsedContent = nodeParams["parsedContent"];
+            for (let i = 0; i < nextFigRefs.length; i++) {     
+                let figure = getNextFigureElement(nextFigRefs[i], parsedContent);
+                setLayoutSpecsOfFigure(figure, "inset");
+                renderNode.insertAdjacentElement("afterend", figure);
+            }
+        }        
     }
 }
 
@@ -2221,6 +2333,10 @@ function setFigureTypesettingClass(figure, addClass = false) {
 
     // define typesetting class:
     if(figure) {
+        // remove former class from figure element:
+        if(figure.classList[typesettingClassListKey] !== undefined) {
+            figure.classList.remove(figure.classList[typesettingClassListKey]);
+        }
         // set typesettingClass saved in figureMap:
         if(figureMap[figure.id]["typesettingClass"]) {
             typesettingClass = figureMap[figure.id]["typesettingClass"];
@@ -2232,10 +2348,6 @@ function setFigureTypesettingClass(figure, addClass = false) {
         // set default typesettingClass
         else {
             typesettingClass = getDefaultFigureTypesettingClass(figure);
-        }
-        // remove former class from figure element:
-        if(figure.classList[typesettingClassListKey] !== undefined) {
-            figure.classList.remove(figure.classList[typesettingClassListKey]);
         }
         // add new  typesetting class to figure element:
         figure.classList.add(typesettingClass);
@@ -2574,6 +2686,33 @@ function calculateClientHeightOfFigCaption(figure, clientWidthCalculated) {
         heightFigCaption = captionLinesRound * textStyles["heightCaptionLinePx"];
     }
     return(heightFigCaption);
+}
+
+/**
+ * check if figure is in line with global figure order:
+ * @param {HTMLElement} figure: figure element currently on stage
+ * @returns {boolean} figBeforeInserted must be set before
+ */
+function isGlobalFigureOrder(figure) {
+    
+    let posCurrent;
+    let figBeforeIsInserted = false;
+    let figureMap = JSON.parse(localStorage.getItem("figure-map"));
+    if(figure) {
+        posCurrent = figureMap[figure.id]["position"];
+        let figBeforeId;
+        if(posCurrent !== 0) {
+            figBeforeId = Object.keys(figureMap)
+            .find(key => figureMap[key]["position"] === posCurrent-1);
+        }
+        if(figBeforeId !== undefined) {
+            figBeforeIsInserted = figureMap[figBeforeId]["inserted"];
+        }
+        if(posCurrent == 0) {   // Fig. 1 = always first
+            figBeforeIsInserted = true;
+        }
+    }
+    return(figBeforeIsInserted);
 }
 
 /* --------------------------------------------------------

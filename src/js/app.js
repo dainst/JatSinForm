@@ -8,15 +8,15 @@ const scriptLibrary = {
         "src-remote": "src/js/generatePagedView.js",
         "src-local": "src/js/generatePagedView.js"
     },
-    "generateHtmlView": {
+    "generateWebView": {
         "type": "text/javascript",
-        "src-remote": "src/js/generateHtmlView.js",
-        "src-local": "src/js/generateHtmlView.js"
+        "src-remote": "src/js/generateWebView.js",
+        "src-local": "src/js/generateWebView.js"
     },
-    "htmlViewController": {
+    "webViewController": {
         "type": "text/javascript",
-        "src-remote": "src/js/htmlViewController.js",
-        "src-local": "src/js/htmlViewController.js"
+        "src-remote": "src/js/webViewController.js",
+        "src-local": "src/js/webViewController.js"
     },
     "figConstellationSetup": {
         "type": "text/javascript",
@@ -83,8 +83,10 @@ faviconLink.rel = 'icon';
 faviconLink.href = "/src/css/assets/graphics/greif.png";
 
 const systemNotice = {
-    "html": "This HTML format was created with <a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank'> JatSinForm</a>.",
-    "pdf": "This PDF was created with <a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank'> JatSinForm</a>."
+    "html": "This HTML format was created with " + 
+        "<a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank' rel='noopener noreferrer'> JatSinForm</a>.",
+    "pdf": "This PDF was created with " + 
+        "<a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank'> JatSinForm</a>."
  }
 
 /** -------------------
@@ -132,8 +134,8 @@ document.addEventListener("readystatechange", (event) => {
         // get journalId from xml-doc:
         let journalId = xmlDoc.querySelector("journal-id").textContent;
 
-        // switch between pdf and viewer-format:
-        if (localStorage.getItem("renderAs") === "PDF") {
+       // switch between pdf and viewer-format:
+       if (localStorage.getItem("renderAs") === "PDF") {
             // prevent auto start of pagedJs previewer:
             window.PagedConfig = { auto: false};
 
@@ -144,7 +146,6 @@ document.addEventListener("readystatechange", (event) => {
             // add render scripts:
             addScriptToDocumentHead("generatePagedView");
             addScriptToDocumentHead("pagedJs");
-
         }
         else if(localStorage.getItem("renderAs") === "Viewer") {
             let documentRoot = document.querySelector(':root');
@@ -155,9 +156,17 @@ document.addEventListener("readystatechange", (event) => {
             let styleSheetLink = getStyleSheetLink(journalId, "htmlView");
             document.head.appendChild(styleSheetLink);
 
+            // add json-LD:
+            let jsonLD = localStorage.getItem('json-LD');
+            if (jsonLD !== null) { jsonLD = JSON.parse(jsonLD); }
+            let script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.textContent = JSON.stringify(jsonLD);
+            document.head.appendChild(script);
+
             // add render scripts:
-            addScriptToDocumentHead("generateHtmlView");
-            addScriptToDocumentHead("htmlViewController");
+            addScriptToDocumentHead("generateWebView");
+            addScriptToDocumentHead("webViewController");
         }
         else {
             addScriptToDocumentHead("figConstellationSetup");
@@ -197,11 +206,22 @@ document.addEventListener("readystatechange", (event) => {
     initProgressBar(processStage);
 });
 
+// reload viewer when stored editor-xml changed
+window.addEventListener('storage', (e) => {
+  if (e.key === 'editor-xml') {
+      window.location.reload();
+    }
+});
+
 function initProgressBar(processStage) {
 
     progressBar.style.cssText = "position:fixed;right:1rem;bottom:1rem;padding:.5rem 1rem;background:#0008;color:#fff;border-radius:.5rem;font:14px/1.4 system-ui;";
 
-    if (processStage === "Ready") {
+    if(/Error/.test(processStage)) {
+         // force viewer rendering for displaying error
+         localStorage.setItem("renderAs", "Viewer");
+    }
+    else if (processStage === "Ready") {
         progressBar.innerHTML = processStage + "!";
         setTimeout(hideProgressBar, 2000);
     } else {
@@ -215,6 +235,7 @@ function initProgressBar(processStage) {
 }
 
 function updateStorageEventListener(processStage) {
+
     localStorage.setItem("processStage", processStage);
     window.dispatchEvent(new Event('storage'));
 }
@@ -318,7 +339,6 @@ document.addEventListener('keyup', function (e) {
 
     // figure related:
     if(document.querySelector(".active") !== null) {
-
         let figureMap = JSON.parse(localStorage.getItem("figure-map"));
         let figure = document.querySelector(".active").parentElement;
         let typesettingClass = figure.classList[2];
@@ -376,6 +396,7 @@ async function processXmlDocument(xmlDoc) {
     let xmlErrorResult = await preflightXmlRequest(xmlDoc);
     if(xmlErrorResult) {
         document.body.append(errorConsole);
+        updateStorageEventListener("Error!");
         throw new Error("XML-Parsing-Error");
     }
 
@@ -407,10 +428,20 @@ async function processXmlDocument(xmlDoc) {
     let journalColor = journalConfigs[journalKey]["journalMainColor"];
     localStorage.setItem("journal-config", JSON.stringify(journalConfigs[journalKey]));
 
-    // convert xml to htmlContentBody:
+    // save xml-front (metadata) in localStorage:
+    const serializer = new XMLSerializer();
+    let xmlFront = xmlDoc.getElementsByTagName("front")[0];
+    let xmlFrontString = serializer.serializeToString(xmlFront);
+    localStorage.setItem("xml-front", xmlFrontString);
+    let jsonLD = mapJATSFrontToScholarlyArticle(xmlFrontString, json = {});
+    localStorage.setItem("json-LD", JSON.stringify(jsonLD));
+
+    // convert xml to html:
     updateStorageEventListener("Convert XML to HTML...");
-    let htmlContentBody = convertXMLToHtmlBody(xmlDoc);
-    document.body.innerHTML = htmlContentBody.outerHTML;
+    let htmlWrapper = convertXmlToHtml(xmlDoc);
+
+    // populate DOM <body>:
+    document.body.innerHTML = htmlWrapper.outerHTML;
 
     // remove xml-namespaces:
     document.querySelectorAll('[xmlns]').forEach(el => {
@@ -491,7 +522,7 @@ async function preflightXmlRequest(xmlDoc) {
         }
     }
     // check graphics:
-    let graphics = xmlDoc.querySelectorAll("graphic,inline-graphic");
+    let graphics = xmlDoc.querySelectorAll("graphic:not([specific-use='placeholder-image']),inline-graphic");
     for (let i = 0; i < graphics.length; i++) {
         if (graphics !== null && graphics.length > 0) {
             let href = graphics[i].getAttribute("xlink:href");
@@ -529,41 +560,20 @@ async function preflightXmlRequest(xmlDoc) {
     return(false);
 }
 
-function convertXMLToHtmlBody(xmlDoc) {
 
-    /* TO-DO:
-    xmlBody should be tagged separatly from front and back
-    - currently xmlBody is wrapped up as "content-body" together with
-    .front and .back, which are appended to xmlBody. 
-    The main-text is not queriable separatly. */
+function convertXmlToHtml(xmlDoc) {
 
     let tagConversionMap = JSON.parse(localStorage.getItem("tag-conversion-map"))[0];
-    let xmlBody = xmlDoc.getElementsByTagName("body")[0];
-    let xmlFront = xmlDoc.getElementsByTagName("front")[0];
-    let xmlBack = xmlDoc.getElementsByTagName("back")[0];
-
-    // save xml-front in localStorage:
-    const serializer = new XMLSerializer();
-    let xmlFrontString = serializer.serializeToString(xmlFront);
-    localStorage.setItem("xml-front", xmlFrontString);
-    let jsonLD = mapJATSFrontToScholarlyArticle(xmlFrontString, json = {});
-    localStorage.setItem("json-LD", JSON.stringify(jsonLD));
-
-    // add xml <front> as preformatted code to html-element:
-    addXMLFrontCodePreformattedToHTML(xmlFront);
-
-    // append meta-content-elements:
-    xmlBody.appendChild(xmlFront)
-    xmlBody.appendChild(xmlBack);
+    let xmlArticle = xmlDoc.getElementsByTagName("article")[0];
 
     // remove empty elements except of (inline-)graphic:
-    removeEmptyElements(xmlBody);
+    removeEmptyElements(xmlArticle);
 
     // convert xml elements to html elements:
-    convertElementsByTagConversionMap(xmlBody, tagConversionMap);
+    convertElementsByTagConversionMap(xmlArticle, tagConversionMap);
 
     // enhance code wit <pre> and language-class:
-    let codeItems = xmlDoc.querySelectorAll("code");
+    let codeItems = xmlDoc.querySelectorAll("code:not(.language-xml)");
     for (let i = 0; i < codeItems.length; i++) {
         let language = codeItems[i].getAttribute("language");
         let pre = document.createElement('pre');
@@ -580,69 +590,23 @@ function convertXMLToHtmlBody(xmlDoc) {
         let metaName = customMetaElements[i].querySelector(".meta-name");
         if(metaName) {
             customMetaElements[i].classList.add(metaName.innerText);
-            metaName.remove();
         }
     }
 
-    let textContentElements = xmlBody.querySelectorAll("p,ul,ol,li,table,pre,code,.title");
+    // create generic ids for text-elements:
+    let textContentElements = xmlArticle.querySelectorAll("p,ul,ol,li,table,pre,code,.title");
     generateGenericElementIdsIfMissing(textContentElements);
-    createHeadlinesBySectionHierarchy(xmlBody, ".title");
 
-    // wrap xmlBody as htmlContentBody
-    let htmlContentBody = document.createElement('div');
-    htmlContentBody.id = "content-body";
-    htmlContentBody.innerHTML = xmlBody.innerHTML;
+    // classify title-level by section
+    createHeadlinesBySectionHierarchy(xmlArticle, "text-body");
 
-    return(htmlContentBody);
+    // wrap xmlArticle content into htmlWrapper
+    let htmlWrapper = document.createElement('div');
+    htmlWrapper.id = "html-wrapper";
+    htmlWrapper.innerHTML = xmlArticle.innerHTML;
+    return(htmlWrapper);
 }
 
-function addXMLFrontCodePreformattedToHTML(xmlFront) {
-
-    let journalMeta = xmlFront.querySelector("journal-meta");
-    let articleMeta = xmlFront.querySelector("article-meta");
-
-    // create display element for journal-meta:
-    if(journalMeta !== null) {
-        let details = document.createElement("details");
-        details.classList.add("xml-front-preformatted");
-        details.id = "journal-meta-preformatted";
-        let summary = document.createElement("summary");
-        summary.classList.add("metadata-summary");
-        summary.textContent = "Journal-Meta (xml)";
-        let pre = document.createElement("pre");
-        pre.classList.add("metadata-pre");
-
-        let code = document.createElement("code");
-        code.classList.add("language-xml");    
-        code.textContent = journalMeta.outerHTML;
-        pre.appendChild(code);
-        details.appendChild(summary);
-        details.appendChild(pre);
-
-        journalMeta.appendChild(details);
-    }
-    // create display element for article-meta:
-    if(articleMeta !== null) {
-        let details = document.createElement("details");
-        details.classList.add("xml-front-preformatted");
-        details.id = "article-meta-preformatted";
-        let summary = document.createElement("summary");
-        summary.classList.add("metadata-summary");
-        summary.textContent = "Article-Meta (xml)";
-        let pre = document.createElement("pre");
-        pre.classList.add("metadata-pre");
-
-        let code = document.createElement("code");
-        code.classList.add("language-xml");    
-        code.textContent = articleMeta.outerHTML;
-        pre.appendChild(code);
-        details.appendChild(summary);
-        details.appendChild(pre);
-
-        articleMeta.appendChild(details);
-    }
-
-}
 
 function transformSelfClosingTags(xml) {
     let split = xml.split("/>");
@@ -657,10 +621,10 @@ function transformSelfClosingTags(xml) {
     return newXml + split[split.length-1];
 }
 
-function removeEmptyElements(xmlBody) {
+function removeEmptyElements(container) {
 
     // get empty elements:
-    let emptyTags = xmlBody.querySelectorAll("*:empty:not(graphic,inline-graphic)");
+    let emptyTags = container.querySelectorAll("*:empty:not(graphic,inline-graphic)");
 
     // remove empty elements:
     for (let i = 0; i < emptyTags.length; i++) {
@@ -675,13 +639,14 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
     // convert selectors as defined in tagConversionMap:
     let elementsNotFound = [];
     for (let selector in tagConversionMap) {
+        const selectorForQuery = selector.replace(/:/g, "\\:");
         let mapTagName = tagConversionMap[selector]["tagName"];
         let mapClassname = tagConversionMap[selector]["className"];
         let metaTitle = tagConversionMap[selector]["metaTitle"];
 
         // process each selector
-        if (xmlBody.querySelectorAll(selector).length !== 0) {
-            let xmlElements = xmlBody.querySelectorAll(selector);
+        if (xmlBody.querySelectorAll(selectorForQuery).length !== 0) {
+            let xmlElements = xmlBody.querySelectorAll(selectorForQuery);
 
             for (let i = 0; i < xmlElements.length; ++i) {
                 let newElement = document.createElement(mapTagName);
@@ -706,7 +671,13 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
 
                     // image source-links:
                     if (selector === "graphic" || selector == "inline-graphic") {
-                        newElement.src = (refValue) ? xmlFolder + "/" + refValue : "";
+                        // exclude placeholder-graphics:
+                        if(refValue.startsWith('data:')) {
+                            newElement.src = (refValue) ? refValue : "";
+                        } 
+                        else {
+                            newElement.src = (refValue) ? xmlFolder + "/" + refValue : "";
+                        }
                     }
                     // external url-links:
                     else if (selector === "ext-link") {
@@ -723,10 +694,12 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                             newElement.target = "_blank";
                             newElement.rel="noopener noreferrer";
                         }
+                        // add href:
                         newElement.href = (refValue) ? (refValue).trim() : "";
                     // internal id-links:
                     } else {
                         newElement.href = (refValue) ? "#" + (refValue).trim() : "";
+                        newElement.id = "ref-" + refValue;
                     }
                 }
                 // set defined attribute to newElement
@@ -749,6 +722,12 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                     // set attribute to new element:
                     newElement.setAttribute(attributeKey, attributeValue);
                 }
+    
+                if(selector === "xref[ref-type='fig']"
+                && xmlElements[i].getAttribute("specific-use")) {
+                    let specificUseValue = xmlElements[i].getAttribute("specific-use");
+                    newElement.setAttribute("data-specific-use", specificUseValue);
+                }
                 // transfer content
                 newElement.innerHTML = xmlElements[i].innerHTML;
 
@@ -767,7 +746,7 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
 }
 
 function generateGenericElementIdsIfMissing(textContentElements) {
-    
+
     let genId;
     for (let i = 0; i < textContentElements.length; i++) {
         if(!textContentElements[i].id) {
@@ -796,21 +775,24 @@ function generateGenericElementIdsIfMissing(textContentElements) {
 /** 
  * classify headline hierarchy: add headline classes by hierarchy of section-elements
  * @param {HTMLElement} content document-fragment made from original DOM
- * @param {selector} selector css-class-selector for headlines, e.g. ".title"
+ * @param {selector} parentClass css-class of parent-element, e.g. "text-body"
  * @returns {void} headline elements are created within the DOM
  */
-function createHeadlinesBySectionHierarchy(content, selector) {
+function createHeadlinesBySectionHierarchy(content, parentClass) {
+
+    // select parent:
+    let textBody = content.getElementsByClassName(parentClass)[0];
 
     // check position in section hierarchy
-    let headlines = content.querySelectorAll(selector);
+    let headlines = textBody.querySelectorAll(".title");
     for (let i = 0; i < headlines.length; i++) {
         let parent = headlines[i].parentElement;
-        let level = 0; // no-level at all
+        let level = 1; // start with 1 (= article-title)
         do {
             parent = parent.parentElement;
-            level++; // at least 1 (loop always run once)
+            level++; // at least 2 for normal headlines (loop always run once)
         }
-        while (parent !== null && parent.tagName !== "body");
+        while (parent !== null && parent.className !== parentClass);
 
         // add level as attribute to sections:
         if(/section/.test(headlines[i].parentElement.tagName)) {
@@ -840,21 +822,23 @@ function defineHeadlinePropertiesByHierarchyLevel(level) {
     switch (true) {
         case (level === 1):
             headlineProperties.elementName = "h1";
-            headlineProperties.className = "main-title";
+            headlineProperties.className = "article-title";
             break;
         case (level === 2):
             headlineProperties.elementName = "h2";
-            headlineProperties.className = "section-title";
-            elementName = "h2";
-            className = "section-title";
+            headlineProperties.className = "main-section-title";
             break;
-        case (level > 2):
+        case (level === 3):
             headlineProperties.elementName = "h3";
+            headlineProperties.className = "section-title";
+            break;
+        case (level > 3):
+            headlineProperties.elementName = "h4";
             headlineProperties.className = "subsection-title";
             break;
         default:
-            headlineProperties.elementName = "h1";
-            headlineProperties.className = "main-title";
+            headlineProperties.elementName = "h2";
+            headlineProperties.className = "main-section-title";
     }
     return(headlineProperties)
 }
@@ -990,24 +974,30 @@ function checkQualityOfUrls() {
 }
 
 /**
- * Convert URLs in a string to anchor links
+ * Convert URL-like substrings in plain text into external anchor tags.
+ * Handles http(s) and www.-prefixed URLs, keeps trailing punctuation
+ * (., ;) outside the link, and avoids prefix-collision replacement bugs.
  * @param {!string} string
  * @returns {!string}
  */
-function URLifyString(string){
-    const urls = string.match(/((((ftp|https?):\/\/)|(w{3}\.))[\-\w@:%_\+.~#?,&\/\/=]+)/g);
-    if (urls) {
-        let lastChar;
-        urls.forEach(function (url) {
-            lastChar = url[url.length - 1];
-            if(lastChar == "." || lastChar == ";" || lastChar == ",") {
-                url = url.slice(0, -1); 
-            }
-            string = string.replace(url, 
-                '<a class ="ext-ref" target="_blank" href="' + url + '">' + url + "</a>");
-        });
-    }
-    return(string);
+function URLifyString(string) {
+    if (typeof string !== "string" || string.length === 0) return string;
+
+    const urlRegex = /((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
+
+    return string.replace(urlRegex, (rawUrl) => {
+        let url = rawUrl;
+        let trailing = "";
+
+        while (/[.,;]$/.test(url)) {
+            trailing = url.slice(-1) + trailing;
+            url = url.slice(0, -1);
+        }
+
+        const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+
+        return `<a class="ext-ref" target="_blank" rel="noopener noreferrer" href="${encodeURI(href)}">${url}</a>${trailing}`;
+    });
 }
 
 /* ----------------------
@@ -1074,19 +1064,19 @@ async function downloadHTMLDocument() {
     // add root-styles:
     htmlDoc.documentElement.style.setProperty('--journal-color', journalColor);
 
+    // define fallback script:
     const fallbackScript = function fallback(noJs) {
       document.addEventListener('readystatechange', (event) => {
         if (event.target.readyState === 'interactive') {
           if (noJs) {
             const errorConsole = document.createElement('div');
             errorConsole.id = 'error-message';
-            errorConsole.innerHTML = "<span>&#9432;</span> There was a problem loading external scripts from the internet. The document is entirely readable but might have reduced functionalities. Please visit the source address by following the DOI link!";
+            errorConsole.innerHTML = "<span>&#9432;</span> There was a problem loading external scripts from the internet." + 
+            " The document is entirely readable but might have reduced functionalities. Please visit the source address by following the DOI link!";
             window.document.body.prepend(errorConsole);
             if (document.querySelector('link') !== null) {
               document.querySelector('link').remove();
             }
-            const poster = document.querySelector('#poster-image');
-            if (poster) poster.remove();
             const pageHeader = document.querySelector('#page-header');
             const tocList = document.querySelector('#toc-list');
             if (pageHeader && tocList) pageHeader.appendChild(tocList);
@@ -1095,6 +1085,7 @@ async function downloadHTMLDocument() {
       });
     };
   
+    // get fallback styles
     let fallbackStyles = false;
     if (localStorage.getItem('viewer-fallback-styles') !== null) {
       fallbackStyles = document.createElement('style');
@@ -1102,19 +1093,22 @@ async function downloadHTMLDocument() {
       fallbackStyles.textContent = localStorage.getItem('viewer-fallback-styles');
     }
   
-    const viewControllerPath = 'src/js/htmlViewController.js';
-    const viewerCssPath = 'src/css/viewer-styles.css';
+    // set script and css-links
+    const viewControllerPath = scriptsDomain + 'jatsinform/src/js/webViewController.js';
+    const viewerCssPath = scriptsDomain + 'jatsinform/src/css/viewer-styles.css';
   
+    // get json-LD
     let jsonLD = localStorage.getItem('json-LD');
     if (jsonLD !== null) { jsonLD = JSON.parse(jsonLD); }
 
+    // define <head>
     htmlDoc.head.innerHTML =
       "  <title>" + jsonLD.headline + "</title>" +
+      "  <meta charset='UTF-8'>" +
       '  <script>' + fallbackScript + '</script>' +
       "  <script type='text/javascript' onerror='this.onerror=null;fallback(true);' src='" + viewControllerPath + "'></script>" +
       "  <link type='text/css' rel='stylesheet' onerror='this.onerror=null;fallback(false)' href='" + viewerCssPath + "'>" +
       "  <script type='application/ld+json'>" + JSON.stringify(jsonLD) + '</script>';
-  
     if (fallbackStyles) htmlDoc.head.appendChild(fallbackStyles);
   
     // remove fetch state markers
@@ -1128,7 +1122,7 @@ async function downloadHTMLDocument() {
   
     // kick off the download
     const filename = (documentId || 'document') + '.html';
-    download(htmlDoc.documentElement.outerHTML, 'text/html', filename);
+    download("<!doctype html>\n" + htmlDoc.documentElement.outerHTML, 'text/html', filename);
 }
 
 function download(content, type, filename) {
@@ -1310,7 +1304,7 @@ function requestXml() {
         errorConsole.innerHTML = "No xml-file given! " + 
         "Checkout index.html: meta[name=\"--xml-file\"]";
         document.body.append(errorConsole);
-        throw new Error();
+        throw new Error("File-Path-Error");
     }
 
     // request jats.xml:
@@ -1324,7 +1318,7 @@ function requestXml() {
             errorConsole.innerHTML = "Path to xml-file is invalid: ['" + 
             xmlPath + "']. Checkout index.html: meta[name=\"--xml-file\"]";
             document.body.append(errorConsole);
-            throw new Error();
+            throw new Error("File-Path-Error");
         }
     }
     else {
@@ -1335,7 +1329,7 @@ function requestXml() {
     if(!xml || xml === null) {
         errorConsole.innerHTML = "ERROR: Could not load xml!";
         document.body.append(errorConsole);
-        throw new Error();
+        throw new Error("XML-Loading-Error");
     }
 
     // replace nested <sec>-elements with <section>-tag before:
@@ -1365,7 +1359,7 @@ function addScriptToDocumentHead(scriptName) {
         let script = document.createElement('script');
         script.type = 'text/javascript';
         script.src = scriptLibrary[scriptName]["src-local"];
-        if(scriptName === "htmlViewController") {
+        if(scriptName === "webViewController") {
             script.defer = true;
         }
         document.head.appendChild(script);
@@ -1406,7 +1400,7 @@ function getStyleSheetLink(journalId, view) {
     // define stylesheet src:
     let stylesheet;
     if(view === "pagedView") {
-        stylesheet = (journalId === "e-DAI-F") ? "paged-styles-reports" : "paged-styles-journals";
+        stylesheet = (journalId === "e-DAI-F") ? "paged-styles-efb" : "paged-styles-journals";
     }
     if(view === "htmlView") {
         stylesheet = "viewer-styles";

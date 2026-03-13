@@ -335,7 +335,7 @@ function addScriptToDocumentHead(scriptName) {
         let script = document.createElement('script');
         script.type = 'text/javascript';
         script.src = htmlViewScriptLibrary[scriptName]["src-local"];
-        if(scriptName === "htmlViewController") {
+        if(scriptName === "webViewController") {
             script.defer = true;
         }
         document.head.appendChild(script);
@@ -362,7 +362,7 @@ function addScriptToDocumentHead(scriptName) {
  function adjustColumnLayoutBasedOnWrapperWidth(event) {
 
     let wrapper = event[0].target;
-    let selector = " #content-body > section";
+    let selector = " .text-body > section";
     let sectionElements = document.querySelectorAll(selector);
     sectionElements.forEach(section => {
         let sectionLevel = section.getAttribute("level");
