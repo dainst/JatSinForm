@@ -368,11 +368,18 @@
             "className": "title-group",
             "obligatory": true
         },
+        "date": {
+            "tagName": "p",
+            "className": "date",
+            "metaTitle": "Created on",
+            "setAttribute": "iso-8601-date",
+            "obligatory": false
+        },
         "pub-date": {
             "tagName": "p",
             "className": "pub-date",
             "metaTitle": "Publishing Date",
-            "setAttribute": "pub-type",
+            "setAttribute": "date-type",
             "obligatory": false
         },
         "year": {
@@ -406,7 +413,6 @@
         "license-p": {
             "tagName": "p",
             "className": "license-p",
-            "setAttribute": "content-type",
             "obligatory": false
         },
         "license": {
@@ -414,6 +420,7 @@
             "className": "license",
             "metaTitle": "License",
             "setAttribute": "license-type",
+            "refAttribute": "xlink:href",
             "obligatory": false
         },
         "ali:license_ref": {
