@@ -99,6 +99,16 @@ details {
    display: none;
 }
 
+.meta-name {
+    text-transform: capitalize;
+    display:block;
+    color: var(--journal-color);
+}
+
+.meta-name:after {
+    content: ":"
+}
+
 .screenreader-only {
     position: absolute;
     width: 1px;

@@ -418,7 +418,7 @@ a.bib-ref {
 
 a.ext-ref {
     color: rgb(23 94 139);
-    word-break: break-all;
+    /* word-break: break-all; */
 }
 
 a.box-ref {
@@ -749,6 +749,7 @@ a.zenon-link {
     border-radius: 10px;
     background: #e1e1e1;
     color: black;
+    text-decoration: none;
 }
 a.zenon-link::before {
     content: "\260D";
@@ -805,6 +806,7 @@ figcaption > span.label {
     margin: 0;
     padding-right: 1%;
     font-size: 0.9rem !important;
+    text-transform:capitalize;
 }
 
 figcaption > span.label::after {
@@ -850,6 +852,22 @@ figcaption > .license-p::after {
     content: "]";
 }
 
+figcaption > .license-url {
+    color: var(--panel-text-color);
+    margin: 0;
+    padding: 0.1rem;
+    font-size: 0.9rem !important;
+}
+
+figcaption > .license-url::before {
+    content: "[";
+    display: inline;
+}
+
+figcaption > .license-url::after {
+    content: "]";
+}
+
 figure > a.internal-index-anchor {
     order: 3 !important;
 }
@@ -882,7 +900,7 @@ img:not(.iDAI-icon,.logo-img) {
     cursor:help;
 }
 
-.journal-logo {
+#journal-logo {
     padding: 0 10% 0 0;
 }
 
@@ -1233,21 +1251,26 @@ img:not(.iDAI-icon,.logo-img) {
     font-size: 0.9rem;
 }
 
+.meta-element {
+    margin-bottom:2%;
+    line-height: 1.75;
+}
+
 .custom-meta {
     text-align: left !important;
 }
 
-.custom-meta > .meta-name {
+.meta-name {
     text-transform: capitalize;
     display:block;
     color: var(--journal-color);
 }
 
-.custom-meta > .meta-name:after {
+.meta-name:after {
     content: ":"
 }
 
-.custom-meta > .meta-value {
+.meta-value {
     font-size: var(--panel-text-font-size);
     color: var(--panel-text-color);
     margin-bottom: 1%;
@@ -1578,13 +1601,13 @@ details[open] summary::before {
     }
 
 }
-/* X-Large devices (desktop, notebook screens, 1200px and up) */
+/* large devices (small desktop, notebook screens, 1200px and up) */
 @media (min-width: 1200px) and (max-width: 1600px) {
 
     html { font-size: 85%; }
 
     .text-body {
-        padding: 5%;
+        padding: 5% 7%;
     }
 }
 
