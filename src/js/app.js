@@ -52,6 +52,11 @@ const scriptLibrary = {
         "type": "text/css",
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
         "src-local": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" // "src/css/font-awesome-min.css"
+    },
+    "interactJs": {
+        "type": "text/javascript",
+        "src-remote": "https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js",
+        "src-local": "https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"
     }
 } 
 const defaultJournal = "AA";
@@ -108,6 +113,7 @@ document.addEventListener("readystatechange", (event) => {
         addScriptToDocumentHead("leaflet");
         addScriptToDocumentHead("leafletCss");
         addScriptToDocumentHead("fontAwesome");
+        addScriptToDocumentHead("interactJs");
 
         // get control-keys config
         requestSourceFile("configs/controlKeyList.json", "control-key-list");
@@ -181,6 +187,7 @@ document.addEventListener("readystatechange", (event) => {
             window.PagedPolyfill.preview();
             scrollToLastPosition();
             hljs.highlightAll();
+            interactJsController();
         }
         // html view
         else if(localStorage.getItem("renderAs") === "Viewer") {
@@ -340,6 +347,9 @@ document.addEventListener('keyup', function (e) {
     // figure related:
     if(document.querySelector(".active") !== null) {
         let figureMap = JSON.parse(localStorage.getItem("figure-map"));
+        let journalConfig = JSON.parse(localStorage.getItem("journal-config"));
+        let figureModelSpecs = journalConfig["figureModelSpecs"];
+
         let figure = document.querySelector(".active").parentElement;
         let typesettingClass = figure.classList[2];
         let newClass;
@@ -373,7 +383,7 @@ document.addEventListener('keyup', function (e) {
             }
         }
         // set layout specs and save changes in figure-map
-        if(newClass !== undefined) {
+        if(newClass !== undefined && figureModelSpecs[newClass] !== undefined) {
             setLayoutSpecsOfFigure(figure, newClass);
             figureMap[figure.id]["typesettingClass"] = newClass;
             figureMap[figure.id]["style"] = false;
@@ -604,6 +614,7 @@ function convertXmlToHtml(xmlDoc) {
     let htmlWrapper = document.createElement('div');
     htmlWrapper.id = "html-wrapper";
     htmlWrapper.innerHTML = xmlArticle.innerHTML;
+    console.log(htmlWrapper);
     return(htmlWrapper);
 }
 
@@ -659,7 +670,8 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                 if (metaTitle) {newElement.setAttribute("data-meta-title", metaTitle)};
                 if (selector == "license-p") {
                     let contentType = xmlElements[i].getAttribute("content-type");
-                    if(contentType !== null) {newElement.setAttribute("data-meta-title", contentType)};
+                    if(contentType !== null) {newElement.
+                        setAttribute("data-meta-title", contentType)};
                 }
                 // add new defined classnames in tagConversionMap
                 if (mapClassname) {newElement.classList.add(mapClassname);}
@@ -678,6 +690,14 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                         else {
                             newElement.src = (refValue) ? xmlFolder + "/" + refValue : "";
                         }
+                    }
+                    // get license-url:
+                    else if(selector === "license") {
+                        let licenseUrl = document.createElement("a");
+                        licenseUrl.classList.add("license-url");
+                        licenseUrl.href = (refValue) ? (refValue).trim() : "";
+                        licenseUrl.textContent = (refValue) ? (refValue).trim() : "";
+                        xmlElements[i].appendChild(licenseUrl);
                     }
                     // external url-links:
                     else if (selector === "ext-link") {
@@ -931,6 +951,9 @@ function getCoverImageBackgroundUrl(coverImageId) {
             backgroundUrl = "url(" + coverImage.src + ")";
         }
     }
+    if (!backgroundUrl) {
+        backgroundUrl = "url()";
+    }
     return(backgroundUrl);
 }
 
@@ -1003,21 +1026,6 @@ function URLifyString(string) {
 /* ----------------------
 Download related function:
 -----------------------*/
-
-function downloadDocumentConfig() {
-
-    // define document json:
-    let documentId = getDocumentStateProperty("documentId");
-    let figureMap = localStorage.getItem("figure-map");
-    let textContentMap = localStorage.getItem("text-content-map");
-    let json = {
-        "documentId": documentId,
-        "figure-map": JSON.parse(figureMap),
-        "text-content-map": JSON.parse(textContentMap)
-    }
-    let filename = documentId + ".json";
-    download(JSON.stringify(json), "text/json", filename);
-}
 
 /**
  * Main export function to download the current document as a self-contained HTML file.
@@ -1529,6 +1537,42 @@ function debounce(func, wait, immediate) {
         timeout = setTimeout(later, wait);
         if (callNow) func.apply(context, args);
     };
+}
+
+// interact-js controller, e.g. for making figures resizable:
+function interactJsController() {
+
+    interact('.resizable').resizable({
+        edges: {top: true, left: true, bottom: true, right: true},
+        listeners: {move: function (event) {
+                let {x, y} = event.target.dataset;
+                x = (parseFloat(x) || 0) + event.deltaRect.left;
+                y = (parseFloat(y) || 0) + event.deltaRect.top;
+
+                Object.assign(event.target.style, {
+                    width: `${event.rect.width}px`,
+                    // height: `${event.rect.height}px`,
+                    transform: `translate(${x}px, ${y}px)`
+                });
+                Object.assign(event.target.dataset, {x, y});
+
+                // save styles in figure map:
+                let figureMap = JSON.parse(localStorage.getItem("figure-map"));
+                figureMap[event.target.id]["style"] = event.target.getAttribute('style');
+                localStorage.setItem("figure-map", JSON.stringify(figureMap));
+
+                // reload
+                setTimeout(function(){
+                    window.location.reload();
+                }, 5000);
+            }
+        },
+        modifiers: [
+            interact.modifiers.aspectRatio({
+                ratio: "preserve"
+            }),
+        ],
+    });
 }
 
 /**
