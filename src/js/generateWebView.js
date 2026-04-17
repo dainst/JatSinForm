@@ -146,7 +146,7 @@ panelWrapper.role = "region";
         // init additional js-functions:
         checkQualityOfUrls();
         showSelectedPanel("contents");
-        createIndexOfInternalReferences("figure:not(.journal-logo)", "fig-ref");
+        createIndexOfInternalReferences("figure:not(#journal-logo)", "fig-ref");
         createIndexOfInternalReferences(".reference", "bib-ref");
         addTitleAttributesAsAccessablityHelper();
 
@@ -287,25 +287,36 @@ function createArticleMetaSection(front) {
     let articleContributorsDetails = createContributorsDetails(front, true);
     articleMetaSection.appendChild(articleContributorsDetails);
 
+    // transform date meta to iso-8601-date:
+    if(front.querySelector(".date") !== null) {
+        let date = front.querySelector(".date");
+        if(date.getAttribute("iso-8601-date") !== null) {
+            date.textContent = date.getAttribute("iso-8601-date");
+        }
+    }
+
     // add basic meta:
-    if(front.querySelector(".article-id") !== null) {
-        articleMetaSection.appendChild(front.querySelector(".article-id"));
-    }
-    if(front.querySelector(".article-title") !== null) {
-        articleMetaSection.appendChild(front.querySelector(".article-title"));
-    }
-    if(front.querySelector(".article-subtitle") !== null) {
-        articleMetaSection.appendChild(front.querySelector(".article-subtitle"));
-    }
-    if(front.querySelector(".pub-date") !== null) {
-        articleMetaSection.appendChild(front.querySelector(".pub-date"));
-    }
-     if(front.querySelector(".copyright-statement:not([content-type='print'])")) {
-        articleMetaSection.appendChild(front.querySelector(".copyright-statement:not([content-type='print'])"));
-    }
-    if(front.querySelector(".license[license-type='text']")) {
-        articleMetaSection.appendChild(front.querySelector(".license[license-type='text']"));
-    }
+    let metaElementSelectors = ".article-id,.article-title,.article-subtitle,.date,.volume,.copyright-statement:not([content-type='print'],.license[license-type='text']";
+    let metaElements = front.querySelectorAll(metaElementSelectors);
+    metaElements.forEach(element => {
+        
+        // create meta elements container:
+        let metaElement = document.createElement("p");
+        metaElement.classList.add("meta-element");
+        let metaName = document.createElement("span");
+        let metaValue = document.createElement("span");
+        metaName.classList.add("meta-name");
+        metaValue.classList.add("meta-value");
+
+        // populate meta elements:
+        metaName.textContent = element.getAttribute("data-meta-title");
+        metaValue.innerHTML = element.innerHTML;
+        metaElement.appendChild(metaName);
+        metaElement.appendChild(metaValue);
+        articleMetaSection.appendChild(metaElement);
+    });
+
+    // license information:
     if(front.querySelectorAll(".license-p").length > 0) {
         front.querySelectorAll(".license-p").forEach(element => {
             articleMetaSection.appendChild(element);
@@ -529,7 +540,7 @@ function createCoverArea(htmlWrapper) {
 
     // create journal logo:
     let logo = document.createElement("figure");
-    logo.classList.add("journal-logo");
+    logo.id ="journal-logo";
     if(localStorage.getItem("journal-config") !== null) {
         let journalConfig = JSON.parse(localStorage.getItem("journal-config"));
         let logoPath = journalConfig["logoPath"];
@@ -934,7 +945,17 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
                         // add clipped text passage from entry:
                         let textQuote = document.createElement("span");
                         textQuote.classList.add("text-quote");
-                        textQuote.innerHTML = entry.textContent;
+                        textQuote.innerHTML = entry.innerHTML; 
+                       
+                        // reform paragraph counters for quoted text (no innerHTML):
+                        let paragraphCounters = textQuote.querySelectorAll(".paragraph-counter");
+                        paragraphCounters.forEach(element => {
+                            element.textContent = "[" + element.textContent + "] ";
+                        });
+                        // replace .innerHTML with .textContent to avoid id-collisions:
+                        textQuote.innerHTML = textQuote.textContent; 
+
+                        // append list elements:
                         listElement.appendChild(labelAnchor);
                         listElement.appendChild(textQuote);
                         list.appendChild(listElement);
@@ -1108,6 +1129,7 @@ function reorderFigureElements(figureSection) {
             let attribution = figure.querySelector(".attribution");
             let license = figure.querySelector(".license");
             let licensePara = figure.querySelector(".license-p");
+            let licenseUrl = figure.querySelector(".license-url");
             let img = figure.querySelector("img");
             
             if(figCaption !== null) {
@@ -1127,6 +1149,9 @@ function reorderFigureElements(figureSection) {
                     figCaption.insertAdjacentElement("beforeend", licensePara);
                     license.remove();
                 }  
+                if(licenseUrl !== null) {
+                    figCaption.insertAdjacentElement("beforeend", licenseUrl);
+                } 
             }
             // use list elements to structure figure listing:
             let figListElement = document.createElement("li");
