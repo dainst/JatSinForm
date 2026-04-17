@@ -1,18 +1,17 @@
 /** ------------------------
 * CONSTANTS
 ----------------------------*/
-const rangeNextFigRefs = 2;
-const figureDensityThreshold = 2;
 const resTypeClassListKey = 0;
 const ratioClassListKey = 1;
 const typesettingClassListKey = 2;
-const pageSpaceBuffer = 0.85;
+const pageSpaceBuffer = 0.95;
 const virtualMarginBuffer = 0.9;
 const minDistanceFromNodeTop = 0;
-const maxPageContentHeight = 907;
-const maxTextAreaWidth = 491;
 const pageFigureMax = 2;
-const noOrphanArea = 100;
+const figureDensityThreshold = 2;
+const rangeNextFigRefs = 4;
+const rangeOverSection = true;
+const keepGlobalFigOrder = true;
 
 /** ------------------------------
  * control pagedJs-Handler (Hook), documentation: 
@@ -89,14 +88,20 @@ function controlPagedJsHandler() {
                 if(textContentMap[sourceNode.id] !== undefined && !textContentMap[sourceNode.id]["isSet"]) {
                     // define nodeParams (e.g. position on page, figure references):
                     let nodeParams = defineSourceNodeParameter(sourceNode, renderNode, parsedContent);
-                    if(textContentMap[sourceNode.id]["isLastTextElement"]){nodeParams["isLastTextElement"] = true;}
-                    if(textContentMap[sourceNode.id]["isLastOfSection"]){nodeParams["isLastOfSection"] = true;}
 
                     // detect splitted nodes:
                     let isSplitNode = (sourceNode.getAttribute("is-split-node") !== null) ? true : false;
                 
                     // exclude figures for defined paragraphs (first text page):
                     if(nodeParams["contexts"]["pageId"] == firstTextPageId && !isSplitNode) {
+                        if(nodeParams["currentFigure"]) {
+                            pushFigRefToNextNode(sourceNode.id, nodeParams["currentFigure"].id);
+                        }
+                        if(nodeParams["nextFigure"]) {
+                            pushFigRefToNextNode(sourceNode.id, nodeParams["nextFigure"].id);
+                        }
+                    }
+                    else if(setFiguresAtEnd && !nodeParams["isLastOfAll"]) {
                         if(nodeParams["currentFigure"]) {
                             pushFigRefToNextNode(sourceNode.id, nodeParams["currentFigure"].id);
                         }
@@ -124,6 +129,9 @@ function controlPagedJsHandler() {
                     let contexts = definePageContextsOfSourceNode(sourceNode);
                     contexts = calculateNodeDistances(contexts, sourceNode);
                     setPageContextsAsElementAttribute(contexts, sourceNode, renderNode);
+
+                    // add resizable class for interact-js:
+                    sourceNode.classList.add("resizable");
                 }
                 // adjust layout of appendix titles:
                 else {
@@ -163,22 +171,22 @@ function controlPagedJsHandler() {
                 figCaptions[i].style.display = "block";
             }
 
-            // urlify plain url-strings in footnote spans:
+            // anchoring: replace footnote innerText with innerHTML saved as attr:
             let footnoteSpans = pageElement.querySelectorAll(".footnote");
             for (let i = 0; i < footnoteSpans.length; i++) {
-                let element = footnoteSpans[i];
-                element.innerHTML = URLifyString(element.innerText);
-               
+                let isFootnote = footnoteSpans[i].getAttribute("isFootnote");
+                if(isFootnote) { 
+                    // footnoteSpans[i].innerHTML = footnoteSpans[i].innerText;
+                    footnoteSpans[i].innerHTML = footnoteSpans[i].getAttribute("footnote-html");
+                } 
             }
+        
             // check urls:
             checkQualityOfUrls();
 
             // test calculations of node distances (see console)
             if(devMode) {
                 testCalculationsOfNodeDistances(pageElement);                
-            }
-            if(autoCorrectIteration) {
-               // not implemented: analyzeBlankSpaceOfPage(page);
             }
         }
 
@@ -247,6 +255,20 @@ function createPagedArticle(content) {
     documentRoot.style.setProperty('--article-title', "'" + articleTitle + "'");
     documentRoot.style.setProperty('--journal-title', "'" + journalTitle + "'");
     documentRoot.style.setProperty('--volume', "'" + volume + "'");
+    let issueFrontmatterPage = createIssueFrontmatterPage(content);
+
+    // create journal logo:
+    let journalLogo = document.createElement("figure");
+    journalLogo.id = "journal-logo";
+    if(localStorage.getItem("journal-config") !== null) {
+        let journalConfig = JSON.parse(localStorage.getItem("journal-config"));
+        let logoPath = journalConfig["logoPath"];
+        let logoImg = document.createElement("img");
+        logoImg.classList.add("logo-img");
+        logoImg.src = logoPath;
+        logoImg.alt = "Logo of the journal"
+        journalLogo.appendChild(logoImg);
+    }
 
     // prepare article components:
     let titleElements = createTitleElements(content);
@@ -258,8 +280,12 @@ function createPagedArticle(content) {
         abstractBox = abstractCollection.querySelector(".abstract");
     } else {
         abstractBox = document.createElement("div")
-        abstractBox.classList.add("abstract", "warning-box")};
+        abstractBox.classList.add("abstract", "warning-box")
+        abstractBox.innerHTML = "[NO ABSTRACTS]";
+    };
+
     let referenceList = createReferenceList(content);
+    let endnotesSection = createEndnotesSection(content);
     let contributorsDetails = createContributorsDetails(content, true);
     let articleMetaSection = createArticleMetaSection(content);
     let imprintSection = createImprintSection(content);
@@ -274,13 +300,14 @@ function createPagedArticle(content) {
 
     // append front-part to article:
     if(journalId === "e-DAI-F") {
-        article.appendChild(createIssueFrontmatterPage());
+        article.appendChild(issueFrontmatterPage);
         article.appendChild(titleElements);
         article.appendChild(authorsElement);
         article.appendChild(contributorsElement);
         article.appendChild(abstractBox);
     // default:
     } else {
+        article.appendChild(journalLogo);
         article.appendChild(abstractBox);
         let titleHeader = document.createElement("div");
         titleHeader.id = "title-header";
@@ -294,7 +321,7 @@ function createPagedArticle(content) {
     if(journalId !== "e-DAI-F") reformatFootnotes(content);
     article.innerHTML += content.querySelector("#html-wrapper").outerHTML;
   
-    // create meta-container for back-part
+    // append back-parts
     let meta = document.createElement("div");
     meta.classList.add("meta-section");
 
@@ -313,6 +340,9 @@ function createPagedArticle(content) {
     }
 
     // append back-part / appendixes:
+    if(journalId === "e-DAI-F" && endnotesSection !== null) {
+        article.appendChild(endnotesSection);
+    }
     article.appendChild(referenceList);
     article.appendChild(sourceOfIllustrations);
     article.appendChild(meta);
@@ -341,19 +371,43 @@ function createPagedArticle(content) {
  * @param {DocumentFragment} content: document-fragment made from original DOM
  * @returns {HTMLElement} coverPage with abstractSection
  */
-function createIssueFrontmatterPage() {
+function createIssueFrontmatterPage(content) {
 
     let issueFrontmatterPage = document.createElement("div");
     issueFrontmatterPage.id = "issue-frontmatter-page";
 
-    // create issue
-    let journalTitle = document.createElement("h1");
+    // add journal title
+    let journalTitle = document.createElement("div");
     journalTitle.id = "journal-title";
-    journalTitle.textContent = "E-Forschungsberichte";
-
+    journalTitle.textContent = "eFORSCHUNGSBERICHTE";
     issueFrontmatterPage.appendChild(journalTitle);
 
-    /* ..... */
+    // add issue number / volume
+    if(content.querySelector(".volume") !== null) {
+        let volume = document.createElement("div");
+        volume.id = "volume";
+        volume.textContent = content.querySelector(".volume").textContent;
+        issueFrontmatterPage.appendChild(volume);
+    }
+
+    // add title-topic-location
+    if(content.querySelector(".title-topic-location > .meta-value") !== null) {
+        let topicLoc = document.createElement("div");
+        topicLoc.id = "topic-location";
+        topicLoc.textContent = content.querySelector(".title-topic-location > .meta-value").textContent;
+        let locIcon = document.createElement("i");
+        locIcon.classList.add("fa", "fa-map-marker");
+        locIcon.ariaHidden ="true";
+        topicLoc.insertAdjacentElement("afterbegin", locIcon);
+        issueFrontmatterPage.appendChild(topicLoc);
+    }
+    // add title-department
+    if(content.querySelector(".title-department > .meta-value") !== null) {
+        let titleDepartment = document.createElement("div");
+        titleDepartment.id = "title-department";
+        titleDepartment.textContent = content.querySelector(".title-department > .meta-value").textContent;
+        issueFrontmatterPage.appendChild(titleDepartment);
+    }
 
     return (issueFrontmatterPage);
 }
@@ -625,12 +679,13 @@ function reformatFootnotes(content) {
         // reformat footnotes:
         for (let i = 0; i < footnotes.length; ++i) {
             let footnote = document.createElement("span");
+            // add attribute (distinct from endnotes)
+            footnote.setAttribute("isFootnote", true); 
 
             // remove fn-label:
             if( footnotes[i].querySelector(".label")) {
                 footnotes[i].querySelector(".label").remove();
             }
-
             // assign classes for rendering and for range-specific stylings
             if (i + 1 < 10) {
                 footnote.classList.add("footnote");
@@ -642,9 +697,10 @@ function reformatFootnotes(content) {
                 footnote.classList.add("footnote");
                 footnote.classList.add("footnote-100-999");
             }
-
-            // assign footnote text to footnote span:
-            footnote.innerHTML = footnotes[i].innerText;
+             // save footnoteSpan html separately as attribute to preserve anchors:
+            footnote.setAttribute("footnote-html", footnotes[i].firstElementChild.innerHTML);
+            // assign footnote text to footnote span as innerText:
+            footnote.innerText = footnotes[i].firstElementChild.innerText;
             checkMaxLengthOfInnerText(footnote, maxFootnoteLength);
             footnotesCollection.push(footnote);
         }
@@ -655,6 +711,27 @@ function reformatFootnotes(content) {
             footnoteRefs[i].append(footnotesCollection[i]);
         }
     }
+}
+
+/**
+ * create endnotes section (for footnotes):
+ * @param {DocumentFragment} content document-fragment made from original DOM
+ * @returns {HTMLElement} endnotes container with fn-label and fn-text
+ */
+function createEndnotesSection(content) {
+    let endnotesSection = content.querySelector(".footnotes-section");
+    if(endnotesSection !== null) {
+        endnotesSection.id = "endnotes-section";
+        let lang = document.documentElement.lang;
+        let endnotesTitle = document.createElement("h3")
+        endnotesTitle.innerHTML = defaultTitles["endnotes"][lang];
+        endnotesTitle.classList.add("main-section-title");
+        endnotesSection.insertAdjacentElement("afterbegin", endnotesTitle);
+        if(endnotesSection.querySelector(".title") !== null) {
+            endnotesSection.querySelector(".title").remove();
+        }
+    }
+    return(endnotesSection)
 }
 
 /**
@@ -753,14 +830,16 @@ function recreateFiguresSection(content) {
     }
 
     // process each figure element:
+    let attribution;
+    let licensePara;
+    let licenseUrl;
+    let label;
     for (let i = 0; i < figures.length; ++i) {
         let img = figures[i].querySelector("img");
       
-        let attribution;
         if(figures[i].querySelector(".attribution") !== null) {
             attribution = figures[i].querySelector(".attribution");
-        }
-        else {
+        } else {
             attribution = document.createElement("p");
             attribution.classList.add("attribution");
             attribution.classList.add("warning-text");
@@ -769,14 +848,21 @@ function recreateFiguresSection(content) {
 
         if(figures[i].querySelector(".license-p") !== null) {
             licensePara = figures[i].querySelector(".license-p");
-        }
-        else {
+        } else {
             licensePara = document.createElement("p");
             licensePara.classList.add("license-p");
             licensePara.textContent = "[LICENSE MISSING]";
         }
 
-        let label;
+        if(figures[i].querySelector(".license-url") !== null) {
+            licenseUrl = figures[i].querySelector(".license-url");
+        }
+        else {
+            licenseUrl = document.createElement("a");
+            licenseUrl.classList.add("license-url");
+            licenseUrl.textContent = "[LICENSE-URL-MISSING]";
+        }
+
         if(figures[i].querySelector(".label") !== null) {
             label = figures[i].querySelector(".label");
         } else {
@@ -820,6 +906,7 @@ function recreateFiguresSection(content) {
         figures[i].append(figCaption);
         figures[i].append(attribution);
         figures[i].append(licensePara);
+        figures[i].append(licenseUrl);
         figureSection.append(figures[i]);
     }
     return(figureSection);
@@ -850,18 +937,22 @@ function createSourceOfIllustrations(figureSection) {
        // append credits for each figure
        let figures = figureSection.querySelectorAll("figure:not(#poster-image)");
        for (let i = 0; i < figures.length; ++i) {
-           let label = figures[i].querySelector(".img-label");
-           let labelCloned = label.cloneNode(true);
-           let attribution = figures[i].querySelector(".attribution");
-           let licensePara = figures[i].querySelector(".license-p");
-           attribution.innerText += " [" + licensePara.textContent + "]";
-           attribution.insertAdjacentElement("afterbegin", labelCloned);
-           licensePara.remove();
-          
-           let credits = document.createElement("div");
-           credits.classList.add("credits");
-           credits.append(attribution);
-           sourceOfIllustrations.appendChild(credits);
+            let label = figures[i].querySelector(".img-label");
+            let labelCloned = label.cloneNode(true);
+            let attribution = figures[i].querySelector(".attribution");
+            attribution.insertAdjacentElement("afterbegin", labelCloned);
+            
+            // build license statements with url
+            let licensePara = figures[i].querySelector(".license-p");
+            let licenseUrl = figures[i].querySelector(".license-url");
+            licenseUrl.textContent = licensePara.textContent; 
+            licensePara.remove();
+
+            let credits = document.createElement("div");
+            credits.classList.add("credits");
+            credits.append(attribution);
+            credits.append(licenseUrl);
+            sourceOfIllustrations.appendChild(credits);
        }
     }
     return (sourceOfIllustrations);
@@ -1031,8 +1122,17 @@ function createArticleMetaSection(content) {
     // add basic article meta:
     let articleMeta = content.querySelector(".article-meta");
     if(articleMeta !== null) {
-        if(articleMeta.querySelector(".article-id") !== null) {
-            articleMetaSection.appendChild(articleMeta.querySelector(".article-id"));
+        if(articleMeta.querySelector(".article-id[pub-id-type='doi']") !== null) {
+            // create anchor-element for doi-url:
+            let articleId = articleMeta.querySelector(".article-id[pub-id-type='doi']");
+            let doiAnchor = document.createElement("a");
+            doiAnchor.classList.add("doi-url");
+            doiAnchor.textContent = articleId.textContent;
+            doiAnchor.href = articleId.textContent;
+            articleId.innerHTML = "";
+            articleId.appendChild(doiAnchor);
+            // append articleId with doi-url-anchor:
+            articleMetaSection.appendChild(articleId);
         }
         if(articleMeta.querySelector(".article-title") !== null) {
             articleMetaSection.appendChild(
@@ -1042,9 +1142,16 @@ function createArticleMetaSection(content) {
             articleMetaSection.appendChild(
                 articleMeta.querySelector(".article-subtitle"));
         } 
-        if(articleMeta.querySelector(".pub-date") !== null) {
-            articleMetaSection.appendChild(
-                articleMeta.querySelector(".pub-date"));
+        if(articleMeta.querySelector(".volume") !== null) {
+            articleMetaSection.appendChild
+            (articleMeta.querySelector(".volume"));
+        }
+        if(articleMeta.querySelector(".date") !== null) {
+            let date = articleMeta.querySelector(".date");
+            if(date.getAttribute("iso-8601-date") !== null) {
+               date.textContent = date.getAttribute("iso-8601-date");
+            }
+            articleMetaSection.appendChild(date);
         }
         if(articleMeta.querySelector(".copyright-statement:not([content-type='print'])")) {
             articleMetaSection.appendChild(articleMeta.querySelector(".copyright-statement:not([content-type='print'])"));
@@ -1121,6 +1228,15 @@ function createImprintSection(content) {
             journalTitle.appendChild(journalDOILink);
         }
         imprintSection.appendChild(journalTitle);
+    }
+
+    // ISSN:
+    if(journalMeta.querySelector(".issn") !== null) {
+        let role = document.createElement("p");
+        role.classList.add("role");
+        role.textContent = "ISSN:";
+        imprintSection.appendChild(role);
+        imprintSection.appendChild(journalMeta.querySelector(".issn"));
     }
 
     // publisher:
@@ -1205,10 +1321,6 @@ function createTextContentMap(parsedContent, previousMap) {
             let element = textElements[i];
             element.classList.add("text-content");
 
-            // mark last-text-content-element = last regular page:
-            if(i + 1 == textElements.length) {
-                element.classList.add("last-of-us");
-            }
             // parse references for each text element:
             let references = element.querySelectorAll("a.fig-ref");
             let figRefs = [];
@@ -1241,6 +1353,25 @@ function createTextContentMap(parsedContent, previousMap) {
                     numTextElementsSection = 1;
                 }
             }
+
+            // mark position of text-elements within section and at all
+            let isLastOfAll = false;
+            let isFirstOfSection = false;
+            let isLastOfSection = false;
+            if(parent.firstElementChild == element) {
+                isFirstOfSection = true;
+                element.classList.add("first-of-section");
+            }
+            if(parent.lastElementChild == element) {
+                isLastOfSection = true;
+                element.classList.add("last-of-section");
+            }
+            if(i + 1 == textElements.length) {
+                isLastOfAll = true;
+                element.classList.add("last-of-all");
+                element.style = "break-after:page;"
+            }
+
             // assign values for each text element:
             let values = {
                 "position": i,
@@ -1250,9 +1381,9 @@ function createTextContentMap(parsedContent, previousMap) {
                 "isSet": false,
                 "style": (previousMap[element.id] !== undefined) ? previousMap[element.id]["style"] : false,
                 "class": (previousMap[element.id] !== undefined) ? previousMap[element.id]["class"] : false,
-                "isLastTextElement": (textElements.length-1 === i),
-                "isFirstOfSection": (parent.firstElementChild == element),
-                "isLastOfSection": (parent.lastElementChild == element),
+                "isFirstOfSection": isFirstOfSection,
+                "isLastOfSection": isLastOfSection,
+                "isLastOfAll": isLastOfAll,
                 "numFigRefsSection": numFigRefsSection,
                 "numTextElementsSection": numTextElementsSection
             };
@@ -1300,7 +1431,7 @@ function createFigureMap(parsedContent, previousMap) {
     figureMap["documentId"] = documentId;
 
     // create map of regular paragraphs:
-    let figures = parsedContent.querySelectorAll("figure:not(#poster-image)");
+    let figures = parsedContent.querySelectorAll("figure:not(#poster-image,#journal-logo)");
     for (let i = 0; i < figures.length; i++) {
         let figure = figures[i];  
         let values = {
@@ -1487,6 +1618,9 @@ Control page layout of element nodes
  */
 function defineSourceNodeParameter(sourceNode, renderNode, parsedContent) {
 
+    // get text content map:
+    let textContentMap = JSON.parse(localStorage.getItem("text-content-map"));
+
     // define figure density of section (relation between figures to text-content):
     let figureDensity = defineFigureDensityOfSection(sourceNode);
 
@@ -1509,6 +1643,8 @@ function defineSourceNodeParameter(sourceNode, renderNode, parsedContent) {
     let nodeParams = {
         "sourceNode": sourceNode,
         "renderNode": renderNode,
+        "isLastOfSection": textContentMap[sourceNode.id]["isLastOfSection"],
+        "isLastOfAll": textContentMap[sourceNode.id]["isLastOfAll"],
         "figureDensity": figureDensity,
         "figRefs": nextFigRefs,
         "numFigRefs": nextFigRefs.length,
@@ -1611,8 +1747,15 @@ function calculateClientMeasurementsOfElement(element) {
     let distanceFromNodeBottom = Math.round(distanceFromNodeTop + elementBoxHeight - nodeMarginTop);
     let nodeBottomBeforeSplit = Math.round(nodeBottom - pageContentTop + nodeMarginBottom); 
 
+    // get maxPageContentHeight (in px) from root-styles:
+    let documentRoot = document.querySelector(':root');
+    let maxPageContentHeight = getComputedStyle(documentRoot).getPropertyValue("--max-page-content-height");
+    if(maxPageContentHeight !== "") {maxPageContentHeight = parseInt(maxPageContentHeight);} 
+    else { maxPageContentHeight = 907;}
+ 
     // define values of pageContexts objecs:
     let pageContexts = {
+        "maxPageContentHeight": maxPageContentHeight,
         "pageContentHeight": pageContentHeight,
         "pageContentWidth": pageContentWidth,
         "pageContentTop": pageContentTop,
@@ -1653,6 +1796,11 @@ function pageHasFigures(pageContent) {
             pageHasFloats = true;
         }
     });
+    // skip in case of set all figures tiny command:
+    if(setAllFiguresTiny) {
+        pageHasFloats = false;
+        isPageFigureMax = false;
+    }
  
     let figureStatsPage = {
         "pageHasFigure": pageHasFigure,
@@ -1804,6 +1952,7 @@ function calculateDistancesOfSplitNodes(contexts, sourceNode) {
     let distanceFromNodeTop = contexts["distanceFromNodeTop"];
     let nodeMarginBottom = contexts["nodeMarginBottom"];
     let pageContentHeight = contexts["pageContentHeight"];
+    let maxPageContentHeight = contexts["maxPageContentHeight"];
     let footnoteAreaHeight = contexts["footnoteAreaHeight"];
 
     // redefine attributes of sourceNode (split-parent):
@@ -1900,14 +2049,16 @@ function calculateDistancesOfTitleNodes(contexts, sourceNode) {
     let distanceFromNodeBottom = contexts["distanceFromNodeBottom"];
     let distanceFromNodeTop = contexts["distanceFromNodeTop"];
     let pageContentHeight = contexts["pageContentHeight"];
+    let maxPageContentHeight = contexts["maxPageContentHeight"];
 
     // calculate nodeHeight and remaining space:
     let nodeHeight = distanceFromNodeBottom - distanceFromNodeTop;
     let remainingSpace = pageContentHeight - distanceFromNodeBottom;
 
     // avoid orphans by adding remaining-space as margin-top (push to next page)
+    let marginBottom;
     if (remainingSpace <= noOrphanArea && autoAvoidOrphans) {
-        let marginBottom = parseInt(getComputedStyle(sourceNode).marginBottom); 
+        marginBottom = parseInt(getComputedStyle(sourceNode).marginBottom); 
         sourceNode.style.marginTop = noOrphanArea * 1.5 + "px";
         fromNodeBottomRenderNode = nodeHeight + marginBottom;
         remainingSpaceRenderNode = maxPageContentHeight - nodeHeight;
@@ -2011,7 +2162,10 @@ function testCalculationsOfNodeDistances(pageElement) {
         remainingSpace = (remainingSpace > 0) ? remainingSpace : 0;
 
         // parameter of fitsInCurrentPageFrame (figures):
-        let fitsCalc = element.getAttribute("data-after");
+        let fitsCalc;
+        if(element.getAttribute("data-after") !== null) {
+            fitsCalc = element.getAttribute("data-after");
+        } else {fitsCalc = "Node is figure node."};
 
         // display:
         let failColor = "color: red;"
@@ -2225,21 +2379,31 @@ function processFigureEnhancing(nodeParams) {
         sourceNode.setAttribute('data-after', allRefAttributes);
         renderNode.setAttribute('data-after', allRefAttributes);
 
-        /* set each figure ignoring context calculation either in case of 
-        high figure density or forced (setAllFigures=true) */
+        // set each figure as tiny float:
+        if(setAllFiguresTiny) {
+            if(currentFigure && !figureMap[currentFigure.id]["typesettingClass"]) {
+                fits["currentFigure"] = true;
+                setLayoutSpecsOfFigure(currentFigure, "float-w-col-2");
+            }
+            if(nextFigure && !figureMap[nextFigure.id]["typesettingClass"]) {
+                fits["nextFigure"] = true;
+                setLayoutSpecsOfFigure(nextFigure, "float-w-col-2"); 
+            }
+        }
+
+        // set each figure ignoring context calculation in case of high figure density:
         let figureDensity = nodeParams["figureDensity"];
-        if(setAllFigures || figureDensity >= figureDensityThreshold) {
+        if(!setAllFiguresTiny && figureDensity >= figureDensityThreshold) {
             if(currentFigure && !/float/.test(classes["beforeCurrent"])
             && !figureMap[currentFigure.id]["typesettingClass"]) {
+                if(!fits["currentFigure"]) {setLayoutSpecsOfFigure(currentFigure, "inset");}
                 fits["currentFigure"] = true;
-                setLayoutSpecsOfFigure(currentFigure, "inset");
             }
             if(nextFigure && !/float/.test(classes["current"])
             && !figureMap[nextFigure.id]["typesettingClass"]) {
+                if(!fits["nextFigure"]) {setLayoutSpecsOfFigure(nextFigure, "inset");}
                 fits["nextFigure"] = true;
-                setLayoutSpecsOfFigure(nextFigure, "inset"); 
             }
-            
         }
 
         // keep global figure order
@@ -2256,6 +2420,7 @@ function processFigureEnhancing(nodeParams) {
         if(fits["currentFigure"] && fits["nextFigure"]) {
             addTemporaryMarginToFloatingFigure(nextFigure, contexts);
             addTemporaryMarginToFloatingFigure(currentFigure, contexts);
+
             if(!setNoFigures) {
                 renderNode.insertAdjacentElement("afterend", nextFigure);
                 renderNode.insertAdjacentElement("afterend", currentFigure);
@@ -2279,12 +2444,26 @@ function processFigureEnhancing(nodeParams) {
             pushFigRefToNextNode(sourceNode.id, nextFigure.id);
         }
 
-        // last text element => place all figures not set before:
-        let isLastTextElement = nodeParams["isLastTextElement"];
-        if(isLastTextElement) {
+        // last text node of section => place all figures in section range
+        if(keepFiguresWithinSection && nodeParams["isLastOfSection"]) {
+            // flip sorting order due to reversed insert
+            let nextFigRefs = nodeParams["figRefs"].reverse(); 
+            let parsedContent = nodeParams["parsedContent"];
+            for (let i = 0; i < nextFigRefs.length; i++) {     
+                let figure = getNextFigureElement(nextFigRefs[i], parsedContent);
+                setLayoutSpecsOfFigure(figure, "inset");
+                renderNode.insertAdjacentElement("afterend", figure);
+                updateFigureMap(figure.id);
+            }
+        }        
 
-            // flip sorting order due to reversed inser
+        // last text node => place all figures not set before:
+        if(nodeParams["isLastOfAll"]) {
+            // force page break for last text node:
+            if(setFiguresAtEnd) sourceNode.style = "margin-bottom:600mm;"
+            // flip sorting order due to reversed insert
             let nextFigRefs = nodeParams["figRefs"].reverse();
+         
             let parsedContent = nodeParams["parsedContent"];
             for (let i = 0; i < nextFigRefs.length; i++) {     
                 let figure = getNextFigureElement(nextFigRefs[i], parsedContent);
@@ -2531,6 +2710,7 @@ function figuresFitInCurrentPageFrame(set, nodeParams) {
     
     // calculate clientSize of figure (includes figCaption and marginBottom)
     let pageContentWidth = contexts["pageContentWidth"];
+    let maxPageContentHeight = contexts["maxPageContentHeight"];
     let clientSizeCurrentFigure = calculateClientSizeOfFigure(currentFigure, pageContentWidth);
     let clientSizeNextFigure = calculateClientSizeOfFigure(nextFigure, pageContentWidth);
     let clientHeightCurrentFigure = clientSizeCurrentFigure["clientHeightCalculated"];
@@ -2540,16 +2720,16 @@ function figuresFitInCurrentPageFrame(set, nodeParams) {
     remainingSpace = remainingSpaceRenderNode * pageSpaceBuffer;
 
     // rescale portait images with exceeding height limit (of page):
-    let maxTargetHeight = maxPageContentHeight * 0.75;
-    if(clientHeightCurrentFigure > maxPageContentHeight * 0.9) {
-        clientHeightCurrentFigure = maxPageContentHeight * 0.75;
+    let maxTargetHeight = maxPageContentHeight * 0.9;
+    if(clientHeightCurrentFigure > maxTargetHeight) {
+        clientHeightCurrentFigure = maxTargetHeight;
         currentFigure.querySelector("img").style = 
-            "max-width:max-content;max-height:" + maxTargetHeight + "px;";
+            "max-height:" + maxTargetHeight + "px;";
     }
-    if(clientHeightNextFigure > maxPageContentHeight * 0.9) {
-        clientHeightNextFigure = maxPageContentHeight * 0.75;
+    if(clientHeightNextFigure > maxTargetHeight) {
+        clientHeightNextFigure = maxTargetHeight;
         nextFigure.querySelector("img").style = 
-            "max-width:max-content;max-height:" + maxTargetHeight + "px;";
+            "max-height:" + maxTargetHeight + "px;";
     }
  
     // check settings of current and next figure together:
@@ -2560,7 +2740,7 @@ function figuresFitInCurrentPageFrame(set, nodeParams) {
             fitsCurrentFigure = true;
             fitsNextFigure = true;
         }
-        else if(remainingSpace > clientHeightCurrentFigure) {
+        else if(remainingSpace > clientHeightCurrentFigure || remainingSpace < 100) {
             fitsCurrentFigure = true;
             fitsNextFigure = false;
         }
@@ -2575,7 +2755,7 @@ function figuresFitInCurrentPageFrame(set, nodeParams) {
             fitsCurrentFigure = true;
             fitsNextFigure = false;
         }
-        else if(remainingSpace > clientHeightCurrentFigure) {
+        else if(remainingSpace > clientHeightCurrentFigure || remainingSpace < 100) {
             fitsCurrentFigure = true;
             fitsNextFigure = false;
         }
@@ -2626,10 +2806,16 @@ function calculateClientSizeOfFigure(figure, pageContentWidth) {
         let naturalHeight = figure.getAttribute("data-img-height");
         let ratio = naturalWidth / naturalHeight;
 
-        // calculate by width (css-)percentage values:
-        let widthPercentage = figure.style.width.slice(0, -1); // e.g. 50
-        clientWidthCalculated = pageContentWidth * widthPercentage / 100;
-        clientHeightCalculated = clientWidthCalculated / ratio;  
+        // calculate clientWidth by width (css-)percentage values:
+        let clientWidthCalculated;
+        let widthPercentage;
+        if(/%/.test(figure.style.width)) {
+            widthPercentage = figure.style.width.slice(0, -1); // e.g. 50 (%)
+            clientWidthCalculated = pageContentWidth * widthPercentage / 100;
+        }
+        // take given clientWidth (e.g. 500px)
+        else { clientWidthCalculated = figure.style.width.slice(0, -2);}
+        clientHeightCalculated = clientWidthCalculated / ratio;  ;
 
         // calculate img and figure margins:
         let documentRoot = document.querySelector(':root');
