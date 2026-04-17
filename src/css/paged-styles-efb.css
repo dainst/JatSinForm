@@ -9,20 +9,22 @@
     --metadata-text-color: #030303;
     --color-marginBox: transparent;
     --long-text-font-family: "Noto Sans Light";
+    --short-text-font-family: "Geometria Light";
     --headline-text-font-family: "Geometria Bold";
-    --short-text-font-family: "Noto Sans Light";
-    --p-font-size: 11pt; /* default: 9.3pt */
+    --p-font-size: 12pt; /* default: 9.3pt */
     --line-height-para: 1.5; /* default 1.5 */
-    --footnote-font-size: 9pt; 
-    --caption-font-size: 9pt;
+    --footnote-font-size: 11pt; /* endnotes */
+    --caption-font-size: 11pt;
     --line-height-cap: 1.37; /* 10pt to 7.3pt */
-    --li-font-size: 10pt; /* 9.3pt; */
+    --li-font-size: 11pt; /* 9.3pt; */
     --meta-element-font-size: 9.5pt; /* 9.3pt; */
     --imgMarginBottom: 2.5mm;
     --floatFigureMarginToText: 7.5mm;
     --floatFigureMarginBottom: 5mm;
-    --floatFigureOffsetToMarginArea: -40mm;
+    --floatFigureOffsetToMarginArea: 0;
     --figureMarginBottomDefault: 5mm;
+    --cover-page-top-margin: 90mm;
+    --max-page-content-height: 952;
     --pagedjs-crop-color: black;
     --pagedjs-crop-shadow: white;
     --pagedjs-crop-stroke: 1px;
@@ -36,8 +38,6 @@
     size: 210mm 297mm;
     margin-top: 20mm;
     margin-bottom: 20mm;
-    margin-left: 30mm;
-    margin-right: 30mm;
     /* marks: crop cross; */
     @top-center {
         content: var(--journal-title) " - " var(--volume);
@@ -49,48 +49,30 @@
         color: black;
         padding-bottom: 1mm;
         margin-bottom: 2mm;
-        border-bottom: 2pt solid var(--journal-color);
+        border-bottom: 1pt solid var(--journal-color);
         text-align: center;
+    }
+    @bottom-center {
+        content: counter(page);
+        font-family: var(--long-text-font-family);
+        font-size: 11pt;
     }
 }
 
 @page :left {
     margin-left: 20mm;
-    margin-right: 60mm;
-
-    @bottom-right-corner {
-        content: counter(page);
-        padding: 0 0 10mm 38mm;
-        font-size: 12pt;
-        font-weight: 500;
-    }
+    margin-right: 25mm;
 }
 
 @page :right {
-    margin-left: 60mm;
+    margin-left: 25mm;
     margin-right: 20mm;
-
-    @bottom-left-corner {
-        content: counter(page);
-        padding: 0 38mm 10mm 0;
-        font-size: 12pt;
-        font-weight: 500;
-    }
-}
-
-.pagedjs_right_page .pagedjs_margin-bottom {
-    width: 130%;
-    margin-left: -42mm;
-}
-
-.pagedjs_left_page .pagedjs_margin-bottom {
-    width: 130%;
-    margin-right: -42mm;
 }
 
 
 /* issue frontmatter page */
 @page :first {
+    font-family: "Geometria Bold";
     counter-increment: page 0;
     margin-left: 30mm;
     margin-right: 30mm;
@@ -107,6 +89,9 @@
     @bottom-left-corner {
         content: "";
     }
+    @bottom-center {
+        content: ""
+    }
 }
 
 @page coverPage {
@@ -114,7 +99,7 @@
     margin-left: 30mm;
     margin-right: 30mm;
     background: var(--background-url) #ffffff;
-    background-position: 0 25mm;
+    background-position: 0 15mm;
     background-size: contain;
     background-repeat: no-repeat;
 
@@ -127,6 +112,9 @@
     }
     @bottom-right-corner {
         content: "";
+    }
+    @bottom-center {
+        content: ""
     }
 }
 
@@ -205,7 +193,7 @@
     }
 }
 
-/* main compontents:
+/* main components:
 --------------------*/
 body {
     text-rendering: optimizeLegibility;
@@ -220,7 +208,7 @@ p {
     line-height: var(--line-height-para);
     font-weight: 300; /* light */
     margin-top:0;
-    margin-bottom: 2.5mm; /* 0, 0.5 or 2.5mm;  */
+    margin-bottom: 5mm; /* 0, 0.5 or 2.5mm;  */
     text-align: justify;
     hyphens: auto;
     -moz-hyphens: auto;
@@ -300,11 +288,12 @@ pre, code {
 
 h1, h2, h3, h4, h5, h6 {
     color: var(--journal-color);
+    font-family: var(--headline-text-font-family);
 }
 
 .title {
-   font-family: var(--headline-text-font-family);
-   page-break-inside: avoid;
+    font-family: var(--headline-text-font-family);
+    page-break-inside: avoid;
 }
 
 .title.first-element {
@@ -313,10 +302,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .main-section-title {
-    font-size: 16pt;
-    margin: 6mm 0 2mm 0;
-    line-height: 1.5; /* 21pt to 14pt */ 
+    font-family: var(--headline-text-font-family);
+    font-size: 14pt;
+    margin: 8mm 0 2mm 0;
+    line-height: 1.65;
     font-weight: 600;
+    text-transform: uppercase;
 }
 
 .main-section-title.first-element {
@@ -325,6 +316,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .section-title {
+    text-transform: uppercase;
     font-size: 14pt;
     line-height: 1.27; /* 14pt to 11pt */
     margin: 8mm 0 2mm 0;
@@ -361,9 +353,11 @@ h1, h2, h3, h4, h5, h6 {
 /* anchors and hyperlinks
 -----------------------------------*/
 a {
-    text-decoration: underline;
-    color: black;
     word-break: break-all;
+    color: var(--long-text-color);
+    text-decoration:underline;
+    text-decoration-thickness: 1pt;
+    text-decoration-color: #a2d3eb;
 }
 
 a:hover {
@@ -371,22 +365,15 @@ a:hover {
 }
 
 a.footnote-reference {
-    text-decoration: none;
     font-size: var(--p-font-size);
 }
 
 a.fn-ref {
-    text-decoration:none;
-    word-break: keep-all;
+    padding: 1mm;
 }
 
 a.fig-ref {
-    font-weight:500;
-    word-break: keep-all;
-}
-
-a.bib-ref {
-    text-decoration:none;
+    font-weight:600;
 }
 
 
@@ -427,47 +414,74 @@ table td:first-child { border-left: none; }
 /* issue-page:
  ----------------*/
 #journal-title {
-    margin-top: 110mm;
-    break-after: page;
     color:white;
+    margin-top: var(--cover-page-top-margin);
+    font-size: 25pt;
+    font-weight: 600;
+}
+
+#volume {
+    font-size: 18pt;
+    font-weight: 600;
+    color: white;
+    margin-top: 5mm;
+}
+
+#topic-location {
+    color: white;
+    font-size: 18pt;
+    font-weight: 600;
+    margin-top: 50mm;
+}
+
+#topic-location > i {
+    margin-right: 2.5mm;
+    color: #b5b5b1;
+}
+
+#title-department {
+    color: white;
+    font-size: 20pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-top:50mm;
 }
 
 /* cover-page:
  ----------------*/
-.title-header-authors {
-    font-family: var(--headline-text-font-family);
-    font-size: 10pt;
-    line-height: 1.6;  /* 16pt to 10pt */
-    font-weight: 400; /* regular */
-    color: #383737;
-    text-transform: uppercase;
-    text-align:justify;
-    margin: 0;
-    padding: 0 0 5mm 0;
-}
-
 .title-header-title {
     page: coverPage;
-    margin-top: 110mm;
+    margin-top: var(--cover-page-top-margin);
     font-family: var(--headline-text-font-family);
     color: var(--journal-color);
     font-size: 1.6rem;
 }
 
 .title-header-subtitle {
+    page: coverPage;
+    margin: 0;
+    margin-bottom: 5mm;
     font-family: var(--headline-text-font-family);
     font-weight: 300; /* light */
-    font-size: 18pt;
-    line-height: 1.45; /* 26pt to 18pt */
+    font-size: 1.25rem;
     color: var(--journal-color);
+}
+
+.title-header-authors {
+    font-family: var(--short-text-font-family);
+    font-size: 11pt;
+    line-height: 1.6;  
+    font-weight: 300; 
+    color: #000000;
     margin: 0;
+    padding: 0 0 5mm 0;
 }
 
 .title-header-contributors {
-    font-family: var(--headline-text-font-family);
+    font-family: var(--short-text-font-family);
     font-weight: 300; /* light */
-    font-size: var(--p-font-size);
-    line-height: var(--line-height); /* 9.3pt to 14pt */
+    font-size: 11pt;
+    line-height: var(--line-height);
     color: #383737;
     text-align:justify;
     margin: 0;
@@ -479,6 +493,7 @@ table td:first-child { border-left: none; }
 }
 
 .abstract > p {
+    font-family: var(--short-text-font-family);
     color: #383737;
     font-size: 10pt;
     margin: 5mm 0;
@@ -506,6 +521,7 @@ table td:first-child { border-left: none; }
 }
 
 .abstract-subtitle {
+    font-family: var(--headline-text-font-family);
     color: var(--journal-color);
     font-size: 10pt;
     font-weight: 300; /* light */
@@ -521,7 +537,7 @@ table td:first-child { border-left: none; }
 
 .abstract-text {
     color: #383737;
-    font-size: 12pt;
+    font-size: 10pt;
     margin: 5mm 0;
     display:block;
     text-align: justify;
@@ -547,40 +563,45 @@ table td:first-child { border-left: none; }
     text-align: justify;
 }
 
-/* footnotes
----------------*/
-span.footnote {
+/* endnotes-section (e.g. for e-fb)
+----------------------------------*/
+#endnotes-section {
+    break-after: page;
+    break-before: page;
+    break-inside: avoid;
+    text-align: left;
+    list-style-type: none;
+    padding-left: 0;
+}
+
+#endnotes-section > .footnote {
+    padding-left:10mm;
+}
+  
+#endnotes-section > .footnote > p {
+    display: inline !important;
     font-family: var(--long-text-font-family);
-    font-size: var(--footnote-font-size);
     color: var(--footnote-text-color);
-    font-weight: 300; /* light */
-    line-height: 1.2; /* 8.75pt to 7pt */
-    float: footnote;
+    font-size: var(--footnote-font-size);
+    font-weight: 300; 
+    padding-bottom: 2.5mm;
+    padding-left: 0;
+    text-align: justify;
 }
 
-.footnote-1-10 {
-    text-indent: calc(var(--footnote-font-size) * -2);  /* 15pt; */
-    padding-left: 20pt;
+#endnotes-section > .footnote > .label {
+    font-family: var(--long-text-font-family);
+    font-size: 8.3pt;
+    font-weight: 600; /* semi-bold */
+    margin: 0;
+    margin-right: 2.5mm;
 }
 
-.footnote-10-99 {
-    text-indent: calc(var(--footnote-font-size) * -2.5);  /* -18.75pt */;
-    padding-left: 20pt;
-}
-
-.footnote-100-999 {
-    text-indent:  calc(var(--footnote-font-size) * -3);  /* -22.5pt; */;
-    padding-left: 26pt;
-}
-
-.pagedjs_footnote_content {
-    border-top: 0.5pt solid #000000;
-    padding: 2.5mm 0;
-} 
-
-[data-footnote-marker]::marker {
-    content: counter(footnote-marker) "    ";
-    white-space:pre;
+[data-id="endnotes-section"] .main-section-title {
+    font-size: 16pt;
+    line-height: 1.5;
+    margin-top: 0;
+    margin-bottom: 5mm;
 }
 
 /* boxed-text and glossary: 
@@ -610,28 +631,6 @@ span.footnote {
     margin-top:0;
 }
 
-/* endnotes-section
----------------------*/
-#endnotes-section {
-    break-after: page;
-    break-before: page;
-    break-inside: avoid;
-    text-align: left;
-    list-style-type: none;
-    padding-left: 0;
-}
-
-#endnotes-section > .footnote {
-    font-family: var(--long-text-font-family);
-    font-size: 8.3pt;
-    font-weight: 300; /* light */
-    line-height: 1.385;/* 11.5pt to 8.3pt */
-    padding-bottom: 2.5mm;
-    padding-left: 0;
-    text-align: justify;
-    float:none;
-}
-
 /* reference List
 ---------------------*/
 #reference-list {
@@ -651,26 +650,25 @@ span.footnote {
     font-family: var(--long-text-font-family);
     page-break-inside: avoid;
     text-align: left;
-    padding-left:0;
+    padding-left:10mm;
     display: block;
 }
 
 .reference > .mixed-citation {
     font-family: var(--long-text-font-family);
-    font-size: 8.3pt;
+    font-size: 11pt;
     font-weight: 300; /* light */
-    line-height: 1.385;/* 11.5pt to 8.3pt */
     margin-top:0;
     text-align: justify;
 }
 
 .mixed-citation > .label {
     font-family: var(--long-text-font-family);
-    font-size: 8.3pt;
+    font-size: 11pt;
     font-weight: 600; /* semi-bold */
-    line-height: 1.385;/* 11.5pt to 8.3pt */
     margin: 0;
-    margin-right: 2.5mm;
+    display: block;
+    color: var(--journal-color);
 }
 
 .ext-ref {
@@ -700,19 +698,23 @@ span.footnote {
     margin-bottom:5mm;
 }
 
+.credits {
+    padding-left:10mm;
+}
+
 .attribution {
     font-family: var(--long-text-font-family);
-    font-size: 9.5pt !important;
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
+    font-size: 11pt !important;
     margin: 0.5mm 0;
     text-align: left;
 }
 
 .attribution > .img-label {
+    font-size: 11pt !important;
     font-family: var(--long-text-font-family);
-    font-size: 8.3pt;
-    font-weight: 600; /* semi-bold */
+    font-weight: 600; 
     line-height: 1.385;/* 11.5pt to 8.3pt */
     margin: 0;
     margin-right: 2.5mm;
@@ -740,7 +742,7 @@ span.footnote {
     font-family: var(--short-text-font-family);
 }
 .trans-abstract > p {
-    color: var(--metadata-text-color);
+    color: black;
     font-size: var(--meta-element-font-size);
     margin: 2.5mm 0;
 }
@@ -838,6 +840,29 @@ span.footnote {
     display: block;
 }
 
+.volume {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+}
+
+.volume:before {
+    text-transform: capitalize;
+    content: attr(data-meta-title) ": ";
+    display: block;
+}
+
+.date {
+    color: var(--metadata-text-color);
+    font-size: var(--meta-element-font-size);
+    margin: 2.5mm 0;
+}
+
+.date:before {
+    content: attr(data-meta-title) ": ";
+    display: block;
+}
+
 .pub-date {
     color: var(--metadata-text-color);
     font-size: var(--meta-element-font-size);
@@ -923,9 +948,12 @@ span.footnote {
     content: ", ";
 }
 
+.issn {
+    color: var(--metadata-text-color);
+}
+
 .publisher {
     color: var(--metadata-text-color);
-    margin: 2mm 0;
 }
 
 .publisher-name {
@@ -1027,6 +1055,7 @@ figure {
     position: relative;
     margin: 5mm 0 5mm 0;
     break-inside: avoid;
+    padding: 1mm;
 }
 
 figure.first-element {
@@ -1050,7 +1079,7 @@ figCaption {
     text-align: left;
     hyphens: auto;
     margin-top: 1mm;
-    display:block;
+    display:none;
 }
 
 .caption-text {
@@ -1065,8 +1094,8 @@ figCaption {
 .img-label {
     font-family: var(--short-text-font-family);
     font-size: var(--caption-font-size);
-    font-weight: 300; /* light */
-    line-height: 1.37; /* 10pt to 7.3pt */
+    font-weight: 300;
+    line-height: 1.37;
 }
 
 .fig-number {
@@ -1151,6 +1180,10 @@ styles for classified images
     margin-top: 1.5mm;
 }
 
+.inset {
+   margin-bottom: 5mm !important;
+}
+
 .inset > figcaption {
     position: absolute;
     width: 40mm !important;
@@ -1166,7 +1199,7 @@ styles for classified images
     width: 25%!important;
     float: left;
     margin-left: -30%;
-    padding: 0.5vh 0;
+    padding: 5mm 0;
     left: 0;
     bottom: 0;
 }
@@ -1176,14 +1209,14 @@ styles for classified images
     width: 25%!important;
     float: right;
     margin-right: -30%;
-    padding: 0.5vh 0;
+    padding: 5mm 0;
     right: 0;
     bottom: 0;
 }
 
 .regular-bottom > figcaption {
     width: 100% !important;
-    margin-bottom: 7.5mm;
+    margin-bottom: 2.5mm;
     display: block;
 }
 
@@ -1201,7 +1234,7 @@ styles for classified images
     position: absolute;
     width: 32.5mm !important;
     float: left;
-    margin-top: 5mm;
+    margin-top: 2.5mm;
     left: 0;
 }
 
@@ -1209,7 +1242,7 @@ styles for classified images
     position: absolute;
     width: 32.5mm !important;
     float: right;
-    margin-top: 5mm;
+    margin-top: 2.5mm;
     right: 0;
 }
 
@@ -1225,7 +1258,7 @@ styles for classified images
 
 .overmargin-bottom > figcaption {
     width: 100% !important;
-    margin-top: 5mm;
+    margin-top: 2.5mm;
     display: block;
 }
 
@@ -1360,16 +1393,14 @@ ul.toc-list {
 
 @font-face {
     font-family: "Geometria Light";
-    src: url(assets/fonts/Geometria-Light.otf) format("otf"),
-    	url(assets/fonts/Geometria-Light.otf) format("otf");
+    src: url(assets/fonts/Geometria-Light.otf) format("opentype");
     font-weight: 300;
     font-style: normal; 
 }
 
 @font-face {
     font-family: "Geometria Bold";
-    src: url(assets/fonts/Geometria-Bold.otf) format("otf"),
-    	url(assets/fonts/Geometria-Bold.otf) format("otf");
+    src: url(assets/fonts/Geometria-Bold.otf) format("opentype");
     font-weight: 600;
     font-style: normal;
 }
