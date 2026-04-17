@@ -21,7 +21,7 @@
     "downloadDocumentFiles": 
       ["d", "download document configs or HTML Document"],
     "setAllFigsToTiny": 
-      ["t", "tiny", "set size class of all figures to tiny"],
+      ["a", "tiny", "set size class of all figures to tiny"],
     "setAllFigsToSmall": 
       ["s", "small", "set size class of all figures to small"],
     "setAllFigsToMedium": 
@@ -31,7 +31,7 @@
   },
   "figure": {
     "toTop":
-      ["u", false, "place figure on top of page"],
+      ["t", false, "place figure on top of page"],
     "switchCaption":
       ["c", {
         "regular": "regular-bottom",
@@ -40,9 +40,9 @@
         "overmargin-bottom": "overmargin"
       }, "switch position of fig-caption"],
     "toOvermargin":
-      ["1", "overmargin", "set figure class to overmargin"],
+      ["1", "overmargin-bottom", "set figure class to overmargin"],
     "toRegular":
-      ["2", "regular", "set figure class to regular"],
+      ["2", "regular-bottom", "set figure class to regular"],
     "toInset":
       ["3", "inset", "set figure class to inset"],
     "toFloatWCol6":
