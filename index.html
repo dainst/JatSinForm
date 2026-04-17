@@ -14,38 +14,39 @@
          const scriptsDomain = "http://localhost:3000/" 
 
          // xml-document related constants:
-         const xmlFolder = "xml-documents" // path to xml
+         const xmlFolder = "xml-documents" // path to xml directory
          const xmlFromEditor = false;      // load editor-xml from localStorage
         
          // all views related:
          const base64ImgConversion = true;
-         const imgQuality = 0.75; // 1 = without compression
+         const imgQuality = 1; // 1 = without compression
          const checkUrlPersistence = false;
          const addStatsSection = true;
 
          // cover design related:
          const coverImageId = "poster-image"; // e.g. "poster-image", "f-1", "f-2"
          const backgroundPosition = "center";
-         const backgroundBlendMode = "difference";
+         const backgroundBlendMode = "overlay";
          const backgroundBlendColor = "#393c47";
  
          // pdf view related:
+         const devMode = false;
          const pagesFlexDirection = "row"; // "row" or "column"
          const firstTextPageId = "page-2";
-         const keepGlobalFigOrder = true;
-         const allFiguresOnTop = true;
-         const rangeOverSection = true;
          const autoAvoidOrphans = true;
+         const noOrphanArea = 120;     // height in px from page bottom
          const maxAbstractLength = 2500;
          const maxFootnoteLength = 2000;
          const maxCaptionLength = 1000;
          const createToC = false;
-         const devMode = false;
-         const autoCorrectIteration = false;
-         const maxAutoCorrectIterations = 2;
-         const setAllFigures = false;
-         const setNoFigures = false;
 
+         // pdf figure layout related:
+         const keepFiguresWithinSection = true;
+         const allFiguresOnTop = true;
+         const setAllFiguresTiny = false;
+         const setFiguresAtEnd = false;
+         const setNoFigures = false;
+     
          // define default titles:
          const defaultTitles = {
             "keywords": {
@@ -97,12 +98,20 @@
                "es": "Referencias bibliográficas"
             },
             "sourceOfIllustrations": {
-               "de": "Abbildungsnachweis",
+               "de": "Abbildungsnachweise",
                "en": "Source of Illustrations",
                "fr": "Crédits des illustrations",
                "it": "Crediti delle illustrazioni",
                "sp": "Créditos de las ilustraciones",
                "es": "Créditos de las ilustraciones"
+            },
+            "endnotes": {
+               "de": "Endnoten",
+               "en": "Notes",
+               "fr": "Notes",
+               "it": "Note",
+               "sp": "Notas",
+               "es": "Notas"
             }
          };
          const contributorsPrepositions = {
