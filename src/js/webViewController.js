@@ -296,7 +296,7 @@ function definePanelNameByTargetId(targetId) {
         case (/#f-/.test(targetId)):
             panelName = "figures";
             break;
-        case (/#fn-/.test(targetId)):
+        case (/#fn-/.test(targetId) || /#ref-fn-/.test(targetId)):
             panelName = "notes";
             break;
         case (/#ref-/.test(targetId)):
