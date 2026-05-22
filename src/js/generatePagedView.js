@@ -9,7 +9,6 @@ const virtualMarginBuffer = 0.9;
 const minDistanceFromNodeTop = 0;
 const pageFigureMax = 2;
 const figureDensityThreshold = 2;
-const rangeNextFigRefs = 4;
 const rangeOverSection = true;
 const keepGlobalFigOrder = true;
 
@@ -1978,9 +1977,7 @@ function calculateDistancesOfSplitNodes(contexts, sourceNode) {
 
     // clone renderNode to exclude footnotes
     let clonedRenderNode = contexts["renderNodeElement"].cloneNode(true);
-    clonedRenderNode.querySelectorAll(".fn-ref").forEach(fnRef => {
-        fnRef.remove();
-    });
+    clonedRenderNode.querySelectorAll(".fn-ref").forEach(fnRef => { fnRef.remove();});
     let calculatedHeight = calculateHeightOfNodeByTextWidth(clonedRenderNode, contexts);
 
     // redefine measurements of renderNode (split-child):
