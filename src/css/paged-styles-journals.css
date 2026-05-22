@@ -119,6 +119,10 @@
     }
 }
 
+.pagedjs_first_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > .pagedjs_footnote_area {
+    border-bottom: none !important;
+}
+
 @media screen, pagedjs-ignore {
     body {
         background: url(assets/graphics/idaiworld-banner.png);
@@ -518,7 +522,6 @@ table td:first-child { border-left: none; }
     color: #383737;
     margin: 0;
     font-weight: 300;
-    text-align: justify;
 }
 
 /* page-header:
@@ -746,10 +749,21 @@ span.footnote {
     margin: 4mm 0;
 }
 
+.credits > .license-p {
+    font-family: var(--short-text-font-family);
+    font-size: 9.5pt !important;
+    font-weight: 300;
+}
+
 .credits > .license-url {
     font-family: var(--short-text-font-family);
     font-size: 9.5pt !important;
     font-weight: 300;
+}
+
+.credits > .license-url::before {
+    content: "License: ";
+    text-decoration: none !important;
 }
 
 

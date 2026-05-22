@@ -560,7 +560,6 @@ table td:first-child { border-left: none; }
     color: #383737;
     margin: 0;
     font-weight: 300;
-    text-align: justify;
 }
 
 /* endnotes-section (e.g. for e-fb)
@@ -700,6 +699,23 @@ table td:first-child { border-left: none; }
 
 .credits {
     padding-left:10mm;
+    margin: 4mm 0;
+}
+
+.credits > .license-p {
+    font-family: var(--long-text-font-family);
+    font-size: 11pt !important;
+    font-weight: 300;
+}
+
+.credits > .license-p::before {
+     content: " License: ";
+}
+
+.credits > .license-url {
+    font-family: var(--long-text-font-family);
+    font-size: 11pt !important;
+    font-weight: 300;
 }
 
 .attribution {
