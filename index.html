@@ -19,9 +19,8 @@
         
          // all views related:
          const base64ImgConversion = true;
-         const imgQuality = 1; // 1 = without compression
+         const imgQuality = 0.75; // 1 = without compression
          const checkUrlPersistence = false;
-         const addStatsSection = true;
 
          // cover design related:
          const coverImageId = "poster-image"; // e.g. "poster-image", "f-1", "f-2"
@@ -34,13 +33,14 @@
          const pagesFlexDirection = "row"; // "row" or "column"
          const firstTextPageId = "page-2";
          const autoAvoidOrphans = true;
-         const noOrphanArea = 120;     // height in px from page bottom
+         const noOrphanArea = 100;     // height in px from page bottom
          const maxAbstractLength = 2500;
          const maxFootnoteLength = 2000;
          const maxCaptionLength = 1000;
          const createToC = false;
 
          // pdf figure layout related:
+         const rangeNextFigRefs = 2;
          const keepFiguresWithinSection = true;
          const allFiguresOnTop = true;
          const setAllFiguresTiny = false;
