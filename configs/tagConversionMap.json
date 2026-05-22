@@ -57,6 +57,11 @@
             "className": "text-medium",
             "obligatory": false
         },
+        "list[list-type='ordered']": {
+            "tagName": "ol",
+            "className": "list",
+            "obligatory": false
+        },
         "list[list-type='order']": {
             "tagName": "ol",
             "className": "list",
