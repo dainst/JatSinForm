@@ -21,6 +21,7 @@ textContentWrapper.id = "text-content-wrapper";
 textContentWrapper.classList.add("column");
 textContentWrapper.ariaLabel = "Main text panel";
 textContentWrapper.role = "region";
+textContentWrapper.tabIndex = -1;
 
 // pseudo top element for back-to-top-anchor
 const topElement = document.createElement("span");
@@ -38,6 +39,7 @@ panelWrapper.id = "panel-wrapper";
 panelWrapper.classList.add("column");
 panelWrapper.ariaLabel = "Supplementary panel";
 panelWrapper.role = "region";
+panelWrapper.tabIndex = -1;
 
 /** --------------------------------------
  * window document state event listener:
@@ -51,34 +53,40 @@ panelWrapper.role = "region";
         // get html-wrapper:
         let htmlWrapper = document.querySelector("#html-wrapper");
 
+        // create cover area: 
+        let coverArea = createCoverArea(htmlWrapper);
+        let abstractSection = getAbstractSection(htmlWrapper);
+        coverArea.appendChild(abstractSection);
+
+        // add cover-area to navigation-panel first:
+        const panelMainText = createPanel("cover", false);
+        panelMainText.appendChild(coverArea);
+        navigationPanelsDocument.push("cover")
+
         // create content panel (ToC):
         let lang = document.documentElement.lang;
         let contentsTitle = defaultTitles["contents"][lang];
         const panelContents = createPanel("contents", contentsTitle, false);
         navigationPanelsDocument.push("contents");
 
-        // create cover area: 
-        let coverArea = createCoverArea(htmlWrapper);
-        let abstractSection = getAbstractSection(htmlWrapper);
-        coverArea.appendChild(abstractSection);
-    
-        // append coverArea to articleHeader:
-        let articleHeader = document.createElement("header");
-        articleHeader.id = "article-header";
-        articleHeader.appendChild(coverArea);
-      
-        // extract supplement links from anchors:
+        // get supplement link anchors:
         let anchors = document.querySelectorAll( // exclude weblinks and zenon-links
             "a.ext-ref:not([data-specific-use='weblink']):not([data-specific-use='zenon']");
+
+        // extract supplementLinks:
         let supplementsLinks = extractSupplementsLinks(anchors);
 
-        // filter and count supplementLinks:
-        supplementsLinks = filterSupplementLinks(supplementsLinks);
-        let numSupplements = countSupplementLinks(supplementsLinks);
+        // filter (only unique targets):
+        supplementsLinks = supplementsLinks.
+            filter(supplementLink => supplementLink.isUnique == true);
+
+        // count targets of supplementLinks:
+        let numSupplements = countSupplementLinkTargets(supplementsLinks);
 
         // create content and supplementary panels:
         createContentPanels(htmlWrapper);
         createSupplementPanels(numSupplements);
+
         // fetch supplementary data from external sources:
         fetchExternalData(supplementsLinks);
 
@@ -105,30 +113,31 @@ panelWrapper.role = "region";
         textContentWrapper.append(textBody);
         textContentWrapper.insertAdjacentElement("afterbegin", topElement)
         textContentWrapper.insertAdjacentElement("beforeend", backToTop);
-
         panelContents.appendChild(tocList);
+
+        // add panelContents and mainTextPanel to panelWrapper
         panelWrapper.appendChild(panelContents);
+        panelWrapper.appendChild(panelMainText);
 
         // add content wrappers to article:
-        article.append(articleHeader);
         article.appendChild(textContentWrapper);
+        
+        // add panel-state anchors for css-based panel navigation:
+        article.appendChild(appendPanelStateAnchors(navigationPanelsDocument));
         article.appendChild(panelWrapper);
     
         // add main header and article to main:
-        main.appendChild(mainHeader);
         main.appendChild(article);
 
         // add mainHeader and main to body:
+        document.body.prepend(createSkipLinks());
         document.body.appendChild(mainHeader);
         document.body.appendChild(main);
         createPanelNavigation(navigationPanelsDocument);
 
         // add stats section:
-        if(addStatsSection) {
-            let statsSection = createDocumentStats(numSupplements);
-            let panelContents = document.querySelector("#contents");
-            panelContents.appendChild(statsSection);
-        }
+        let statsSection = createDocumentStats(numSupplements);
+        panelContents.appendChild(statsSection);
 
         // remove <front> and <back> and htmlWrapper (empty)
         if(htmlWrapper.querySelector(".front") !== null) {htmlWrapper.querySelector(".front").remove();}
@@ -136,7 +145,7 @@ panelWrapper.role = "region";
         if(htmlWrapper !== undefined) htmlWrapper.remove();
 
         // define image scaling:
-        document.querySelectorAll('img:not(.logo-img)').forEach(function(img) {
+        document.querySelectorAll('img:not(.logo-img,.poster-img)').forEach(function(img) {
             img.onerror = function(){this.style.display='none';};
             img.setAttribute("loading", "lazy");
             img.title = "Right-click or press on image for image-specific features";
@@ -145,7 +154,6 @@ panelWrapper.role = "region";
 
         // init additional js-functions:
         checkQualityOfUrls();
-        showSelectedPanel("contents");
         createIndexOfInternalReferences("figure:not(#journal-logo)", "fig-ref");
         createIndexOfInternalReferences(".reference", "bib-ref");
         addTitleAttributesAsAccessablityHelper();
@@ -216,6 +224,38 @@ function createImprintSection(front) {
     }
 
     return (imprintSection);
+}
+
+/**
+ * Accessability feature: create keyboard skip links for top-level navigation targets
+ * @returns {HTMLElement} nav element with skip links
+ */
+function createSkipLinks() {
+
+    let skipNav = document.createElement("nav");
+    skipNav.classList.add("skip-links");
+    skipNav.ariaLabel = "Skip links";
+
+    let skipToPanelNav = document.createElement("a");
+    skipToPanelNav.classList.add("skip-link");
+    skipToPanelNav.href = "#panel-navigation";
+    skipToPanelNav.textContent = "Skip to panel navigation";
+
+    let skipToMainText = document.createElement("a");
+    skipToMainText.classList.add("skip-link");
+    skipToMainText.href = "#text-content-wrapper";
+    skipToMainText.textContent = "Skip to main text";
+
+    let skipToSupplementaryPanel = document.createElement("a");
+    skipToSupplementaryPanel.classList.add("skip-link");
+    skipToSupplementaryPanel.href = "#panel-wrapper";
+    skipToSupplementaryPanel.textContent = "Skip to supplementary panel navigation";
+
+    skipNav.appendChild(skipToPanelNav);
+    skipNav.appendChild(skipToMainText);
+    skipNav.appendChild(skipToSupplementaryPanel);
+
+    return(skipNav);
 }
 
 /**
@@ -441,7 +481,7 @@ function createContributorsCard(contributor) {
             let institutionId = contributor.querySelector(".institution-id").textContent;
             institutionIdLink.classList.add("institution-link");
             institutionIdLink.target = "_blank";
-            institutionIdLink.href = institutionId
+            institutionIdLink.href = institutionId;
             institutionIdLink.innerHTML = contributor.querySelector(".institution").textContent;
             institution.append(institutionIdLink);
         } else { institution.innerHTML = contributor.querySelector(".institution").textContent;}
@@ -531,6 +571,12 @@ function createCoverArea(htmlWrapper) {
         if(posterImage.querySelector(".attribution") !== null) {
             let posterImageAttrib = posterImage.querySelector(".attribution");
             posterImageAttrib.classList.add("poster-image-attribution");
+        }
+        // add accessability helper (altText, role)
+        if(posterImage.querySelector("img") !== null) {
+            posterImage.querySelector("img").classList.add("poster-img");
+            posterImage.querySelector("img").alt = "";
+            posterImage.querySelector("img").role = "presentation";
         }
     } else {
         posterImage = document.createElement("p");
@@ -804,25 +850,33 @@ function createPanel(panelName, defaultTitle = false, content = false) {
 
     // create panel element:
     let panel = document.createElement("aside");
-    panel.classList.add("panel", "resource-view", "hidden");
+    panel.classList.add("panel", "resource-view");
     panel.id = panelName;
+    panel.role = "region";
+    panel.tabIndex = -1;
   
     // add panel content
     if(content) {panel.appendChild(content);}
 
-    // add panel title:
-    if(panelName !== "metadata") {
-        let title = document.createElement("h3");
-        title.classList.add("title", "panel-title", "section-title");
-        let givenTitle = panel.querySelector(".title");
-        if(givenTitle !== null) {
-            title.textContent = givenTitle.textContent;
-            givenTitle.remove();
-        } else {
-            title.textContent = (defaultTitle) ? defaultTitle : "[No title]";
-        }
-       panel.insertAdjacentElement("afterbegin", title);
+    // no panel title for metadata and cover
+    if(panelName == "metadata" || panelName == "cover" ) {
+       return(panel)
     }
+
+    // add panel title:
+    let title = document.createElement("h3");
+    title.classList.add("title", "panel-title", "section-title");
+    title.id = "panel-title-" + panelName;
+    panel.setAttribute("aria-labelledby", title.id);
+    let givenTitle = panel.querySelector(".title");
+    if(givenTitle !== null) {
+        title.textContent = givenTitle.textContent;
+        givenTitle.remove();
+    } else {
+        title.textContent = (defaultTitle) ? defaultTitle : "[No title]";
+    }
+    panel.insertAdjacentElement("afterbegin", title);
+
     return(panel);
 }
 
@@ -910,7 +964,7 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
     elements.forEach(function(element) {
         if(element.id !== null && element.id !== "poster-image") {
             let refIndex = elementsRefIndex[element.id];
-        
+
             // create details element for displaying results:
             let internalIndexBox = document.createElement("details");
             internalIndexBox.classList.add("internal-index-box");
@@ -923,51 +977,54 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
      
             // parse and list positive results in form of quotes:
             if(refIndex.totalNumber !== 0) {
-                if(refIndex.refLinks.length) {
-                    let list = document.createElement("ul");
-                    refIndex.quotes.forEach(entry => {
-                        let listElement = document.createElement("li");
-                        let labelAnchor = document.createElement("a");
-                        labelAnchor.classList.add("index-ref");
-                        labelAnchor.href = "#" + entry.id;
+               let list = document.createElement("ul");
+                for (let i = 0; i < refIndex.refLinks.length; ++i) {
 
-                        let visibleSpan = document.createElement("span");
-                        visibleSpan.title = "Jump to " + entry.id + " in main-text";
-                        visibleSpan.ariaHidden = true;
-                        visibleSpan.innerHTML = "<i>&#9741;</i>";
-                        labelAnchor.appendChild(visibleSpan);
+                    // create elements:
+                    let listElement = document.createElement("li");
+                    listElement.classList.add("quote-list-entry");
+                    let labelAnchor = document.createElement("a");
+                    labelAnchor.classList.add("index-ref");
+                    labelAnchor.href = "#" + refIndex.refLinks[i];
+                 
+                    // define targetPanelName for back-anchor 
+                    if(refIndex.quotesTargetSection[i] == "main-text") {
+                        labelAnchor.setAttribute("data-target-section", "contents");
+                    } else {
+                        labelAnchor.setAttribute("data-target-section", "notes");
+                    }
+                   
+                    let visibleSpan = document.createElement("span");
+                    visibleSpan.title = "Jump to " + refIndex.refLinks[i];
+                    visibleSpan.ariaHidden = true;
+                    visibleSpan.innerHTML = '<i class="fa fa-link" aria-hidden="true"></i>';
+                    labelAnchor.appendChild(visibleSpan);
 
-                        let hiddenSpan = document.createElement("span");
-                        hiddenSpan.classList.add("screenreader-only");
-                        hiddenSpan.textContent = "Jump to " + entry.id + " in main-text";
-                        labelAnchor.appendChild(hiddenSpan);
-                        
-                        // add clipped text passage from entry:
-                        let textQuote = document.createElement("span");
-                        textQuote.classList.add("text-quote");
-                        textQuote.innerHTML = entry.innerHTML; 
-                       
-                        // reform paragraph counters for quoted text (no innerHTML):
-                        let paragraphCounters = textQuote.querySelectorAll(".paragraph-counter");
-                        paragraphCounters.forEach(element => {
-                            element.textContent = "[" + element.textContent + "] ";
-                        });
-                        // replace .innerHTML with .textContent to avoid id-collisions:
-                        textQuote.innerHTML = textQuote.textContent; 
+                    let hiddenSpan = document.createElement("span");
+                    hiddenSpan.classList.add("screenreader-only");
+                    hiddenSpan.textContent = "Jump to " + refIndex.refLinks[i];
+                    labelAnchor.appendChild(hiddenSpan);
+                    
+                    // add clipped text passage from quote
+                    let textQuote = document.createElement("span");
+                    textQuote.classList.add("text-quote");
+                    textQuote.textContent = "..." + refIndex.quotes[i] + "...";
+                    
+                    // replace .innerHTML with .textContent to avoid id-collisions:
+                    textQuote.innerHTML = textQuote.textContent; 
 
-                        // append list elements:
-                        listElement.appendChild(labelAnchor);
-                        listElement.appendChild(textQuote);
-                        list.appendChild(listElement);
-                    });
-                    internalIndexBox.appendChild(list);
-
+                    // append list elements:
+                    listElement.appendChild(labelAnchor);
+                    listElement.appendChild(textQuote);
+                    list.appendChild(listElement);
                 }
+                internalIndexBox.appendChild(list);
             // highlight negative results (to be avoided by editorial policy)
             } else {
                 internalIndexSummary.classList.add("warning-box");
             } 
             element.appendChild(internalIndexBox);
+         
         }
     });   
 }
@@ -983,16 +1040,17 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
 function getReferenceIndex(elements, referenceSelector) {
 
     let referenceIndex = {};
-    
     elements.forEach(function(element) {
         // exclude elements with missing ids and poster-image
         if(element.id !== null && element.id !== "poster-image") {
+            // prepare objects:
             let refLinks = [];
             let quotes = [];
+            let quotesTargetSection = [];
 
-            // define selector for reference anchor for given type, e.g. fig-ref:
+            // define selector of anchor for given type, e.g. fig-ref:
             let refSelector = "a." + referenceSelector + "[href='#" + element.id + "']";
-            
+
             // query referenceElements:
             let referenceElements = document.querySelectorAll(refSelector);
 
@@ -1004,13 +1062,20 @@ function getReferenceIndex(elements, referenceSelector) {
             if(referenceElements.length) {
                 // get links and quotes from closest parent:
                 referenceElements.forEach(refElement => {
-                    let closestParentIds = [];
-                    let closestParentElement = refElement.closest("*[id]");
-                    if(closestParentElement !== null) {
-                        closestParentIds.push(closestParentElement.id);
+                    let closestParent = refElement.parentElement || refElement.closest("p");
+                    if(closestParent  !== null) {
+                        // extract quote from parent element and push to array:
+                        let quote = getContextSnippet(refElement, closestParent, 100);
+                        quotes.push(quote);
+                        // detect parent target section (main-text or footnote):
+                        if(/fn-/.test(closestParent.id)) {
+                            quotesTargetSection.push("footnote");
+                        } else {
+                            quotesTargetSection.push("main-text");
+                        } 
                     }
-                    refLinks.push(closestParentIds);
-                    quotes.push(refElement.parentElement);
+                    // push ref-links (anchors) 
+                    refLinks.push(refElement.id);
                 });
             }
             // collect all values as reference stats:
@@ -1018,12 +1083,49 @@ function getReferenceIndex(elements, referenceSelector) {
                 "totalNumber": referenceElements.length,
                 "refLinks": refLinks,
                 "quotes": quotes,
+                "quotesTargetSection": quotesTargetSection
             };
             // add reference stats of each element:
             referenceIndex[element.id] = referenceStats;
+
         }
     });
     return(referenceIndex);
+}
+
+
+function getContextSnippet(anchor, parent, radius = 50) {
+    if (!anchor || !parent) return "";
+
+    if (anchor.tagName.toLowerCase() !== "a") return "";
+
+    let anchorClass = anchor.className;
+    if (!anchorClass) return "";
+
+    if (!anchor.matches("a." + anchorClass.split(" ").join("."))) return "";
+
+    if (!parent.contains(anchor)) return "";
+
+    let anchorText = anchor.textContent;
+
+    let rangeBefore = document.createRange();
+    rangeBefore.setStart(parent, 0);
+    rangeBefore.setEndBefore(anchor);
+    let textBefore = rangeBefore.toString();
+
+    let fullText = parent.textContent;
+
+    let index = textBefore.length;
+
+    let start = Math.max(0, index - radius);
+    let end = Math.min(fullText.length, index + anchorText.length + radius);
+
+    let snippet = fullText.slice(start, end).trim();
+
+    if (start > 0) snippet = "…" + snippet;
+    if (end < fullText.length) snippet = snippet + "…";
+
+    return snippet.replace(anchorText, `<mark>${anchorText}</mark>`);
 }
 
 /**
@@ -1050,6 +1152,7 @@ function createToCByHeadlines(htmlWrapper) {
             let tocListItem = document.createElement("li");
             tocListItem.classList.add("heading-ref", levelClass);
             let tocEntry = document.createElement("a");
+            tocEntry.setAttribute("data-target-section", "contents");
             tocEntry.classList.add("heading-ref-a");
             tocEntry.ariaCurrent = "false";
 
@@ -1082,7 +1185,16 @@ function createPanelNavigation(navigationPanelsDocument) {
 
     // create panelNavigation and panelNavigationList
     let panelNavigation = document.createElement("nav");
+    panelNavigation.id = "panel-navigation";
     panelNavigation.classList.add("panel-navigation");
+    panelNavigation.ariaLabel = "Panel navigation";
+
+    let panelNavigationHint = document.createElement("span");
+    panelNavigationHint.id = "panel-navigation-hint";
+    panelNavigationHint.classList.add("screenreader-only");
+    panelNavigationHint.textContent = "Activates panel content on the right side.";
+    panelNavigation.appendChild(panelNavigationHint);
+
     let panelNavigationList = document.createElement("ul");
 
     // create elements for each panel name:
@@ -1092,23 +1204,53 @@ function createPanelNavigation(navigationPanelsDocument) {
             let li = document.createElement("li");
             li.classList.add("nav-" + panelName);
 
-            // buttons:
-            let button = document.createElement("button");
-            button.type = "button";
-            button.classList.add("panel-buttons");
-            button.id = "b-" + panelName;
-            button.innerHTML = navIcons[panelName];
-            button.ariaLabel = "Show " +  panelName;
-            button.setAttribute("onclick", "showSelectedPanel('" + panelName + "')");
+            // anchor links:
+            let anchor = document.createElement("a");
+            anchor.classList.add("panel-buttons");
+            anchor.id = "b-" + panelName;
+            anchor.innerHTML = navIcons[panelName];
+
+            // add web-accessability features
+            let humanReadablePanelName = panelName.replace(/-/g, " ");
+            anchor.ariaLabel = "Open " + humanReadablePanelName + " panel";
+            anchor.setAttribute("aria-controls", panelName);
+            anchor.setAttribute("aria-describedby", "panel-navigation-hint");
+            anchor.setAttribute("aria-current", "false");
+            anchor.href = "#panel-" + panelName;
 
             // append elements:
-            li.appendChild(button);
+            li.appendChild(anchor);
             panelNavigationList.appendChild(li);
         });
     }
     // append panelNavigation to navHeader
     panelNavigation.appendChild(panelNavigationList);
     mainHeader.appendChild(panelNavigation);
+}
+
+/**
+ * create state-anchor elements for css-based panel navigation
+ * @param {Array} panelNames: list with panel names, e.g. ["contents","figures"]
+ * @returns {DocumentFragment} anchorElements: fragment with hidden state anchors
+ */
+function appendPanelStateAnchors(panelNames) {
+
+    // create document fragment for state-anchor elements:
+    let anchorElements = document.createDocumentFragment();
+
+    // create one state-anchor for each panel-name:
+    if(panelNames && panelNames.length > 0) {
+        panelNames.forEach(panelName => {
+            let stateAnchor = document.createElement("span");
+            stateAnchor.id = "panel-" + panelName;
+            stateAnchor.classList.add("screenreader-only");
+            stateAnchor.ariaLabel = "Open " + panelName.replace(/-/g, " ") + " panel";
+            stateAnchor.ariaHidden = true;
+            stateAnchor.textContent = "Open " + panelName.replace(/-/g, " ") + " panel";
+            anchorElements.appendChild(stateAnchor);
+        });
+    }
+    return(anchorElements);
 }
 
 /**
@@ -1199,8 +1341,8 @@ function extractSupplementsLinks(anchors) {
         // exclude empty and internal links
         if(anchors[i].href !== "" && anchors[i].host !== selfHost) {
             
-            // define id of referencing anchor
-            let refAnchorId = "data-ref-" + i + 1;
+            // define unique id of referencing anchor:
+            let refAnchorId =  "xref-object-" + generateRandomString(4) + i;
             anchors[i].id = refAnchorId;
 
             // parse url:
@@ -1219,8 +1361,8 @@ function extractSupplementsLinks(anchors) {
                 if(/field/.test(apiRefUrl.apiSource)) {
                     targetPrefix = "field";
                 }
-
-                // find duplicates:
+               
+                // detect uniques apiUrls:
                 let isUnique;
                 if(!uniques.includes(apiRefUrl.apiUrl)) {
                     isUnique = true;
@@ -1240,23 +1382,58 @@ function extractSupplementsLinks(anchors) {
                     "isUnique": isUnique,
                     "anchor": anchors[i]
                 };
+                // collect supplement links:
                 supplementsLinks.push(urlProperties);
+
+                // redefine targets of duplicate supplement links anchors:
+                supplementsLinks = redefineTargetsOfSupplementLinkAnchors(supplementsLinks);
             }
-            
-            // set #target-prefix-id as href-attribute to anchor: 
-            //anchors[i].href = "#target-" + targetPrefix + "-" + refAnchorId;
         }
     }
     return(supplementsLinks);
 }
 
 /**
- * count supplement links (for document index)
+ * redefine targets of supplement link anchors (to handle multiple references to one object)
+ * @param {array} supplementsLinks: array enriched with urlProperties
+ * @returns {array} supplementsLinks with redefined anchors
+ */
+function redefineTargetsOfSupplementLinkAnchors(supplementLinks) {
+
+    // iterate through supplementLinks:
+    supplementLinks.forEach(supplementLink => {     
+        let anchor = supplementLink["anchor"];
+        let refAnchorId = supplementLink["refAnchorId"];
+        let targetPrefix = supplementLink["targetPrefix"];
+        let isUnique = supplementLink["isUnique"]; 
+        let apiUrl = supplementLink["apiUrl"];
+
+        // find duplicate anchors and point to unique url:
+        if(!isUnique) {
+            for (const [key, value] of Object.entries(supplementLinks)) {
+                if (value.isUnique == true && value.apiUrl === apiUrl) {
+                    refAnchorId = value.refAnchorId; // unique anchor
+                }
+            };
+        };
+        
+        // set #target as href-attribute to anchors:
+        anchor.href = "#target-" + targetPrefix + "-" + refAnchorId;
+        
+        // set target-prefix as data-target-section attribute:
+        anchor.setAttribute("data-target-section", targetPrefix);
+    });
+    return(supplementLinks);
+}
+
+
+/**
+ * count supplement link targets (for document index)
  * @param {array} supplementsLinks: array enriched with urlProperties
  * @returns {array} numSupplements: array with amount of links, sorted
  * by source system (e.g. gazetter, arachne)
  */
-function countSupplementLinks(supplementsLinks) {
+function countSupplementLinkTargets(supplementsLinks) {
 
     // init object:
     let numSupplements = {
@@ -1278,39 +1455,6 @@ function countSupplementLinks(supplementsLinks) {
     });
 
     return(numSupplements);
-}
-
-/**
- * filter supplement links (to handle multiple references to one object)
- * @param {array} supplementsLinks: array enriched with urlProperties
- * @returns {array} supplementsLinks: filtered by isUnique and adapted
- * href of non-unique anchors pointing to "externalObjectElement" as target
- */
-function filterSupplementLinks(supplementLinks) {
-
-    // iterate through supplementLinks:
-    supplementLinks.forEach(supplementLink => {     
-        let anchor = supplementLink["anchor"];
-        let refAnchorId = supplementLink["refAnchorId"];
-        let targetPrefix = supplementLink["targetPrefix"];
-        let isUnique = supplementLink["isUnique"]; 
-        if(!isUnique) {
-            let apiUrl = supplementLink["apiUrl"];
-            // find proxy anchor-id as #target:
-            for (const [key, value] of Object.entries(supplementLinks)) {
-                if (value.isUnique == true && value.apiUrl === apiUrl) {
-                    refAnchorId = value.refAnchorId;
-                }
-            };
-        };
-        // set #target as href-attribute to anchor:
-        anchor.href = "#target-" + targetPrefix + "-" + refAnchorId;
-    });
-
-    // exclude duplicates:
-    let supplementLinksFiltered = supplementLinks
-        .filter(supplementLink => supplementLink.isUnique == true);
-    return(supplementLinksFiltered);
 }
 
 /**
@@ -1436,6 +1580,9 @@ function renderExternalData(supplementsLinks) {
                 break;
         }
     }
+
+    // create index of supplement references:
+    createIndexOfInternalReferences(".object-visualization", "ext-ref");
 }
 
 /**
@@ -1513,7 +1660,7 @@ function parseFieldData(data) {
  * @returns {void} elements containing data are added
  * to the document as externalObject (html elements)
  */
-function displayGazetteerData(values) {
+function displayGazetteerData(values) {;
 
     let externalObject = createExternalObjectElement("gazetteer");
     let objectName = externalObject.querySelector(".object-name");
@@ -1612,9 +1759,11 @@ function displayArachneData(values) {
             objectVisualization.id = "target-arachne-" + values["refAnchorId"];
         }
         // create object-image
+        let url;
+        
         if (data.images && data.images.length) {
-            let url = "https://arachne.dainst.org/data/image/" + data.images[0].imageId;
-            createExternalObjectImage(url, objectVisualization, "arachne");
+            url = "https://arachne.dainst.org/data/image/" + data.images[0].imageId;
+            createExternalObjectImage(url, objectVisualization);
         }
         // link to arachne for displaying 3D models:
         else if(data.type === "3D-Modelle") {
@@ -1668,7 +1817,7 @@ function displayFieldData(values) {
         let url;
         if (data.imageSource) {
             url = data.imageSource;
-            createExternalObjectImage(url, objectVisualization, "field");
+            createExternalObjectImage(url, objectVisualization);
         }
         else {
             objectVisualization.innerText = "[No images available]";
@@ -1714,6 +1863,11 @@ function createExternalObjectElement(source) {
     // wrapper div to add images and other other visualizations
     let objectVisualization = document.createElement("div");
     objectVisualization.classList.add("object-visualization");
+
+    // add fetch-state-span to object-visualization container:
+    let fetchStateSpan = document.createElement("span");
+    fetchStateSpan.classList.add("fetch-state-span");
+    objectVisualization.appendChild(fetchStateSpan);
     
     // wrapper div to add data source url
     let dataSourceInfo = document.createElement("div");
@@ -1735,7 +1889,7 @@ function createExternalObjectElement(source) {
     objectDetails.appendChild(objectData);
     objectDetails.appendChild(dataSourceInfo);
     objectDetails.appendChild(objectVisualization);
-    externalObject.appendChild(objectDetails)
+    externalObject.appendChild(objectDetails);
 
     // hide fetchStateBar:
     document.querySelector("#fetch-state-" + source).style.display = "none";
@@ -1751,7 +1905,7 @@ function createExternalObjectElement(source) {
  * @returns {void} reads image data as dataUrl (base64-format) 
  * and appends it to the objectVisualization container
  */
-async function createExternalObjectImage(url, objectVisualization, fetchBar) {
+async function createExternalObjectImage(url, objectVisualization) {
 
     let objectImage = document.createElement("img");
     objectImage.classList.add("object-image");
@@ -1767,7 +1921,7 @@ async function createExternalObjectImage(url, objectVisualization, fetchBar) {
         reader.readAsDataURL(blob); 
         reader.onloadstart = function() {
             let fetchState = "[...Fetching data from: " + url + "]...";
-            objectVisualization.innerText = fetchState;
+            objectVisualization.querySelector(".fetch-state-span").textContent = fetchState;
         }
         reader.onloadend = function() {
             base64data = reader.result;                
@@ -1775,8 +1929,8 @@ async function createExternalObjectImage(url, objectVisualization, fetchBar) {
             objectImage.onload = function () {
                 scaleImage(objectImage);
             };
-            objectVisualization.innerText = "";
-            objectVisualization.appendChild(objectImage);
+            objectVisualization.insertAdjacentElement("afterbegin", objectImage);
+            objectVisualization.querySelector(".fetch-state-span").remove();
         }
     });
 }
@@ -1834,16 +1988,16 @@ function addBackLinkAnchorToFootnote(footnote) {
 
         let hrefSelector = "[href='#" + footnote.id + "']"; 
         let textToFnAnchor = document.querySelector(".fn-ref" + hrefSelector);
-
+      
         if(textToFnAnchor !== null) {
             let backAnchor = document.createElement("a");
             backAnchor.classList.add("index-ref");
-            backAnchor.href = "#ref-" + footnote.id;
+            backAnchor.href = "#" + textToFnAnchor.id;
 
             let visibleSpan = document.createElement("span");
-            visibleSpan.title = "Jump back to former position";
+            visibleSpan.title = "Jump back to position in main text";
             visibleSpan.ariaHidden = true;
-            visibleSpan.innerHTML = "<i>&#9741;</i>";
+            visibleSpan.innerHTML = '<i class="fa fa-link" aria-hidden="true"></i>';
             backAnchor.appendChild(visibleSpan);
             
             footnote.insertAdjacentElement("afterbegin", backAnchor);
@@ -1881,6 +2035,19 @@ function addBackLinkAnchorToFootnote(footnote) {
             element.title = "Jump to Figure: " + titleAttr;
         });
     }
+
+    // ext-refs (only internals):
+    let extRefs = document.querySelectorAll(
+        ".ext-ref[data-specific-use='extrafeatures']," + 
+        ".ext-ref[data-specific-use='extrafeatures']"); 
+    if(extRefs.length > 0) {
+        let objectType;
+        extRefs.forEach(element => {
+            objectType = element.getAttribute("data-target-section");
+            titleAttr = element.textContent;
+            element.title = "Jump to supplementary object (" + titleAttr + ") in side panel";
+        });
+    }
  }
 
 
@@ -1898,10 +2065,3 @@ function scaleImage(img) {
         img.style = "max-height:max-content;max-width:" + natWidth + "px;";
     }
 }
-
-
-
-
-
-
-

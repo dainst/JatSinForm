@@ -2,6 +2,7 @@
   "AA": {
     "journalId": "AA",
     "journalMainColor": "#E2510C",
+    "journalMainColorHighContrast": "#E2510C",
     "logoPath": "src/css/assets/graphics/AA_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -31,6 +32,7 @@
   "JoGA": {
     "journalId": "JoGA",
     "journalMainColor": "#515249",
+    "journalMainColorHighContrast": "#515249",
     "logoPath": "src/css/assets/graphics/JoGA_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -60,6 +62,7 @@
   "e-DAI-F": {
     "journalId": "e-DAI-F",
     "journalMainColor": "#164194",
+    "journalMainColorHighContrast": "#164194",
     "logoPath": "src/css/assets/graphics/e-FB_Logo.png",
     "figCaptionsAtPageBottom": true,
       "figureTypesettingClass": {
@@ -89,6 +92,7 @@
   "FdAI": {
     "journalId": "FdAI",
     "journalMainColor": "#557ebb",
+    "journalMainColorHighContrast": "#557ebb",
     "figCaptionsAtPageBottom": false,
     "logoPath": "src/css/assets/graphics/FdAI_Logo.png",
     "figureTypesettingClass": {
@@ -119,6 +123,7 @@
   "MM": {
     "journalId": "MM",
     "journalMainColor": "#0092d0",
+    "journalMainColorHighContrast": "#005D85",
     "logoPath": "src/css/assets/graphics/MM_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -148,6 +153,7 @@
   "RM": {
     "journalId": "RM",
     "journalMainColor": "#002E54",
+    "journalMainColorHighContrast": "#002E54",
     "logoPath": "src/css/assets/graphics/RM_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -177,6 +183,7 @@
   "PhDAI": {
     "journalId": "PhDAI",
     "journalMainColor": "#50bcbd",
+    "journalMainColorHighContrast": "#296161",
     "logoPath": "src/css/assets/graphics/PHDAI_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -206,6 +213,7 @@
   "JdI": {
     "journalId": "JdI",
     "journalMainColor": "#004b87",
+    "journalMainColorHighContrast": "#004b87",
     "logoPath": "src/css/assets/graphics/JdI_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -235,6 +243,7 @@
   "IM": {
     "journalId": "IM",
     "journalMainColor": "#6c1d45",
+    "journalMainColorHighContrast": "#6c1d45",
     "logoPath": "src/css/assets/graphics/IM_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -264,6 +273,7 @@
   "MDAIK": {
     "journalId": "MDAIK",
     "journalMainColor": "rgb(182, 0, 75)",
+    "journalMainColorHighContrast": "rgb(182, 0, 75)",
     "logoPath": "src/css/assets/graphics/MDAIK_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -293,6 +303,7 @@
   "ZOrA": {
     "journalId": "ZOrA",
     "journalMainColor": "#7c8f7e",
+    "journalMainColorHighContrast": "#415944",
     "logoPath": "src/css/assets/graphics/ZOrA_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -319,13 +330,10 @@
       "overmargin-bottom": ["130%", "100%"]
     }
   },
-  "ReiseF": {
-    "journalId": "ReiseF",
-    "journalMainColor": "#002E54"
-  },
   "GGeschichte": {
     "journalId": "GGeschichte",
     "journalMainColor": "rgb(151, 139, 139)",
+    "journalMainColorHighContrast": "rgb(151, 139, 139)",
     "logoPath": "src/css/assets/graphics/e-FB_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",

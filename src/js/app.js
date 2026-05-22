@@ -30,13 +30,13 @@ const scriptLibrary = {
     },
     "highlightJs": {
         "type": "text/javascript",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
+        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js",
         "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
     },
     "highlightJsCss": {
         "type": "text/css",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css",
+        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
+        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
     },
     "leaflet": {
         "type": "text/javascript",
@@ -62,18 +62,6 @@ const scriptLibrary = {
 const defaultJournal = "AA";
 const urlRegex = /doi|handle|urn|ark:|orcid|ror|dainst|idai.world|wikipedia/g;
 const specificUseRegex = "zenon|extrafeatures|supplements";
-
-const navIcons = {
-    "contents": "<span class='fa fa fa-list' aria-hidden='true'></span>",
-    "figures": "<span class='fa fa-image' aria-hidden='true'></span>",
-    "notes": "<span class='fa fa-list-ol' aria-hidden='true'></span>",
-    "references": "<span class='fa fa-book' aria-hidden='true'></span>",
-    "gazetteer": "<span class='fa fa-map' aria-hidden='true'></span>",
-    "arachne": "<span class='fa fa-database' aria-hidden='true'></span>",
-    "field": "<span class='fa fa-database' aria-hidden='true'></span>",
-    "metadata": "<span class='fa fa-info' aria-hidden='true'></span>",
-    "stats": "<span class='fa fa-bar-chart' aria-hidden='true'></span>"
-}
 
 const progressBar = document.createElement("div");
 progressBar.id = "progress-bar";
@@ -222,7 +210,10 @@ window.addEventListener('storage', (e) => {
 
 function initProgressBar(processStage) {
 
-    progressBar.style.cssText = "position:fixed;right:1rem;bottom:1rem;padding:.5rem 1rem;background:#0008;color:#fff;border-radius:.5rem;font:14px/1.4 system-ui;";
+    progressBar.style.cssText = 
+        "position:fixed;right:1rem;bottom:1rem;padding:.5rem 1rem;" + 
+        "background:#0008;color:#fff;border-radius:.5rem;font:14px/1.4 system-ui;" + 
+        "z-index:1000;";
 
     if(/Error/.test(processStage)) {
          // force viewer rendering for displaying error
@@ -436,6 +427,7 @@ async function processXmlDocument(xmlDoc) {
     let journalConfigs = JSON.parse(localStorage.getItem("journals-config"))[0];
     let journalKey = (journalConfigs[journalId] !== undefined) ? journalId : defaultJournal;
     let journalColor = journalConfigs[journalKey]["journalMainColor"];
+    let journalColorHighContrast = journalConfigs[journalKey]["journalMainColorHighContrast"];
     localStorage.setItem("journal-config", JSON.stringify(journalConfigs[journalKey]));
 
     // save xml-front (metadata) in localStorage:
@@ -482,6 +474,7 @@ async function processXmlDocument(xmlDoc) {
     let documentRoot = document.querySelector(':root');
     documentRoot.style.setProperty('--pages-flex-direction', pagesFlexDirection);
     documentRoot.style.setProperty('--journal-color', journalColor);
+    documentRoot.style.setProperty('--journal-color-high-contrast', journalColorHighContrast);
     documentRoot.style.setProperty('--background-url', getCoverImageBackgroundUrl(coverImageId));;
     documentRoot.style.setProperty('--background-position', backgroundPosition);
     documentRoot.style.setProperty('--background-blend-mode', backgroundBlendMode);
@@ -652,7 +645,7 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
     for (let selector in tagConversionMap) {
         const selectorForQuery = selector.replace(/:/g, "\\:");
         let mapTagName = tagConversionMap[selector]["tagName"];
-        let mapClassname = tagConversionMap[selector]["className"];
+        let mapClassName = tagConversionMap[selector]["className"];
         let metaTitle = tagConversionMap[selector]["metaTitle"];
 
         // process each selector
@@ -674,7 +667,7 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                         setAttribute("data-meta-title", contentType)};
                 }
                 // add new defined classnames in tagConversionMap
-                if (mapClassname) {newElement.classList.add(mapClassname);}
+                if (mapClassName) {newElement.classList.add(mapClassName);}
 
                 // set ref-links:
                 if (tagConversionMap[selector].hasOwnProperty("refAttribute")) {
@@ -716,10 +709,12 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                         }
                         // add href:
                         newElement.href = (refValue) ? (refValue).trim() : "";
+
                     // internal id-links:
                     } else {
                         newElement.href = (refValue) ? "#" + (refValue).trim() : "";
-                        newElement.id = "ref-" + refValue;
+                        newElement.id = "xref-" + generateRandomString(4) + "_" + refValue;
+                        newElement.setAttribute("data-target-section", defineTargetSectionByClassname(mapClassName));
                     }
                 }
                 // set defined attribute to newElement
@@ -792,6 +787,41 @@ function generateGenericElementIdsIfMissing(textContentElements) {
     }
 }
 
+function generateRandomString(length) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    for ( let i = 0; i < length; i++ ) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}
+
+/**
+ * define panel name based on ids of href-targets
+ * @param {String} className className of inline anchors
+ * @returns {String} section: name of target section, default: "contents"
+ */
+function defineTargetSectionByClassname(className) {
+
+    let panelName;
+    switch (true) {
+        case (/fig-ref/.test(className)):
+            panelName = "figures";
+            break;
+        case (/fn-ref/.test(className)):
+            panelName = "notes";
+            break;
+        case (/bib-ref/.test(className)):
+            panelName = "references";
+            break;
+        default:
+            panelName = "contents";
+            break;
+    }
+    return(panelName);
+}
+
 /** 
  * classify headline hierarchy: add headline classes by hierarchy of section-elements
  * @param {HTMLElement} content document-fragment made from original DOM
@@ -850,7 +880,7 @@ function defineHeadlinePropertiesByHierarchyLevel(level) {
             break;
         case (level === 3):
             headlineProperties.elementName = "h3";
-            headlineProperties.className = "section-title";
+            headlineProperties.className = "subsection-title";
             break;
         case (level > 3):
             headlineProperties.elementName = "h4";
@@ -1068,9 +1098,11 @@ async function downloadHTMLDocument() {
     // get styles:
     const styles = getComputedStyle(documentRoot);
     const journalColor = styles.getPropertyValue('--journal-color');
+    const journalColorHighContrast = styles.getPropertyValue('--journal-color-high-contrast');
 
     // add root-styles:
     htmlDoc.documentElement.style.setProperty('--journal-color', journalColor);
+    htmlDoc.documentElement.style.setProperty('--journal-color-high-contrast', journalColor);
 
     // define fallback script:
     const fallbackScript = function fallback(noJs) {

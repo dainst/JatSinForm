@@ -5,13 +5,13 @@
 const htmlViewScriptLibrary = {
     "highlightJs": {
         "type": "text/javascript",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
+        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js",
+        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js",
     },
     "highlightJsCss": {
         "type": "text/css",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css",
+        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
+        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
     },
     "leaflet": {
         "type": "text/javascript",
@@ -29,6 +29,19 @@ const htmlViewScriptLibrary = {
         "src-local": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" // "src/css/font-awesome-min.css"
     }
 } 
+
+const navIcons = {
+    "cover": "<span class='fa fa-file-text' aria-hidden='true'></span>",
+    "contents": "<span class='fa fa-list' aria-hidden='true'></span>",
+    "figures": "<span class='fa fa-image' aria-hidden='true'></span>",
+    "notes": "<span class='fa fa-list-ol' aria-hidden='true'></span>",
+    "references": "<span class='fa fa-book' aria-hidden='true'></span>",
+    "gazetteer": "<span class='fa fa-map' aria-hidden='true'></span>",
+    "arachne": "<span class='fa fa-database' aria-hidden='true'></span>",
+    "field": "<span class='fa fa-database' aria-hidden='true'></span>",
+    "metadata": "<span class='fa fa-info' aria-hidden='true'></span>",
+    "stats": "<span class='fa fa-bar-chart' aria-hidden='true'></span>"
+}
 /** ---------------------------------
  * document state event listener:
  * @type {EventListenerObject}
@@ -45,7 +58,7 @@ const htmlViewScriptLibrary = {
 
         // add third-party libraries and stylesheets:
         if(isSingleHTMLFile) {
-            // addScriptToDocumentHead("highlightJs");
+            addScriptToDocumentHead("highlightJs");
             addScriptToDocumentHead("highlightJsCss");
             addScriptToDocumentHead("leaflet");
             addScriptToDocumentHead("leafletCss");
@@ -59,264 +72,26 @@ const htmlViewScriptLibrary = {
 
     if (event.target.readyState === "complete") {
 
+        // remove progress-bar:
         if(document.querySelector("#progress-bar") !== null) {
             document.querySelector("#progress-bar").style.display = "none";
         }
+
+        // event listener:
         focusTocTargetsOnHoverSection();
-        showSelectedPanel("contents");
-        setTimeout(() => {
-            // highlight anchor targets:
-            let anchors = document.querySelectorAll(
-                "a.fig-ref,a.bib-ref,a.fn-ref,a.box-ref,a.index-ref," +
-                "a.ext-ref:not([data-specific-use='weblink'])"); // exclude weblinks
-            highlightAnchorTargets(anchors);
-            // observe text-content-wrapper:
-            const observer = new ResizeObserver(function(event) {
-                adjustColumnLayoutBasedOnWrapperWidth(event);
-            });
-            observer.observe(document.querySelector('#text-content-wrapper'));
-        }, 500);
+        handleAnchorHashFeatures();
+        window.addEventListener("hashchange", handleAnchorHashFeatures);
+
+        // sync initial panel hash:
+        if (!window.location.hash) {window.location.hash = "#panel-cover";}
+        syncInitialHash();
     }
 });
+
 
 /** ------------
  FUNCTIONS
  --------------*/
- /**
- * show selected panel (navigation)
- * @param {String} selectedPanel: panelName, e.g. "figures"
- * @returns {void} triggers functions and manages css-classes in DOM
- */
-function showSelectedPanel(selectedPanel) {
-
-    let panelAnchors = document.querySelectorAll(".panel-buttons");
-    panelAnchors.forEach((panelAnchor) => {
-        let panelName = panelAnchor.id.slice(2); 
-        let panel = document.querySelector("#" + panelName);
-
-        if(selectedPanel && panel !== null) {
-            if(panelName === selectedPanel) {
-                // highlight anchor in nav.panel
-                panelAnchor.classList.add("active");
-                panel.classList.replace("hidden", "active");
-          
-                // initMaps during panel-display:
-                if(selectedPanel === "gazetteer") {
-                    setTimeout(initMaps(".map"), 500);
-                }
-            }
-            else {
-                panel.classList.replace("active", "hidden");
-                panelAnchor.classList.remove("active");
-            }
-        };
-    });
-}
-
- /**
- * init(ialize) map containers for leaflet
- * @param {String} selector css-selector of map container(s)
- * @returns {void} handles over mapId and coords to createMap()
- */
-function initMaps(selector) {
-
-    let maps = document.querySelectorAll(selector);
-    maps.forEach(map => {
-        let coords = [];
-        if(map.getAttribute("longitude") !== null && 
-        map.getAttribute("latitude") !== null) {
-            coords.push(map.getAttribute("longitude"));
-            coords.push(map.getAttribute("latitude"));
-        }
-        // no coordinates available
-        else {
-          coords = false;
-        }
-        createMap(map.id, coords);
-    });
-}
-
- /**
- * create leaflet maps
- * @param {String} mapId: ids of map elements (divs with class 'map')
- * @param {Array} coordinates: array wit long and lat values
- * @returns {void} instantiates leaflet maps (e.g. mapLayers and marker)
- */
-function createMap(mapId, coordinates) {
-
-    // set tile layers:
-    let mapLayer = L.tileLayer.wms("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
-        tiled: true,
-        format: "image/jpeg",
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    });
-
-    // define map parameter:
-    let location = (coordinates) ? {lat: coordinates[1], lng: coordinates[0]} : [0,0];
-    let zoom = (coordinates) ? 8 : 1;
-
-    // instantiate map:
-    if(!document.querySelector("#" + mapId + " > .leaflet-pane")) {
-        map = L.map(document.querySelector("#" + mapId), {
-            zoom: zoom,
-            doubleClickZoom: false,
-            dragging: false,
-            zoomSnap: false,
-            trackResize: false,
-            touchZoom: false,
-            scrollWheelZoom: false,
-            center: location,
-        });
-        mapLayer.addTo(map);             // show mapLayer by default
-        L.control.scale().addTo(map);    // show dynamic scale (Maßstab)
-      
-        // add location marker:
-        let marker = L.marker(location).addTo(map);
-        if(!coordinates) {
-            marker.bindPopup("No coordinates available.").openPopup();
-        }
-    }
-}
-
- /**
- * focus toc-targets when hover over section
- * @returns {void} classes of targeted toc elements will be changed
- * if the element comes into viewport (detected by intersection observer)
- */
-function focusTocTargetsOnHoverSection() {
-
-    const options = {threshold: 1,};
-    const observer = new IntersectionObserver(sections => {
-        sections.forEach(section => {
-
-            // get target reference by section headline:
-            let headline = section.target.firstElementChild;
-            let targetRefId;
-            if(headline != null) {
-                targetRefId = headline.getAttribute("href");
-            } else (targetRefId = null);
-    
-            // query target:
-            let target;
-            if(targetRefId !== null && !targetRefId.includes(' ')) {        
-                 target = document.querySelector(targetRefId);
-            } else target = null;
-
-            // reference comes into viewport (at bottom)
-            if (section.isIntersecting) { 
-                 // handle target:
-                 if(target !== null) {
-                     target.classList.toggle('active');
-                     target.scrollIntoView({
-                         behavior: "smooth",
-                         block: "center"
-                     });
-                     target.ariaCurrent = true;
-                 }
-            } 
-            // element leaves the viewport (at top)
-            else {
-                if(target !== null) {
-                    target.classList.remove('active');
-                    target.ariaCurrent = false;
-                }
-            }
-        }, options);
-    });
-
-    // track all section elements:
-    document.querySelectorAll("section")
-        .forEach((element) => {observer.observe(element);
-    });
-}
-
- /**
- * highlight (internal) targets of anchors when clicked
- * @param {NodeList} anchors: nodeList of internal anchors
- * @returns {void} adds a click-event listener that displays
- * the panels of the anchor-targets and highlights the anchor
- * targets itself (by scrollIntoView and css-classes)
- */
-function highlightAnchorTargets(anchors) {
-    
-    let targetRef;
-    let targetPanelName;
-    
-    if(anchors !== undefined && anchors.length) {
-        anchors.forEach((anchor) => {
-            // when clicked
-            anchor.addEventListener("click", event => {
-                // define target
-                targetRef = anchor.getAttribute("href");
-                targetPanelName= definePanelNameByTargetId(targetRef);
-                // show panel first:
-                showSelectedPanel(targetPanelName);
-                // query target:
-                let target;
-                if(targetRef !== null && !targetRef.includes(' ')) {        
-                    target = document.querySelector(targetRef);
-                } else {target = null;}
-
-                if(target !== null) {
-                    // give panel a bit of time to change
-                    setTimeout(() => { 
-                        target.classList.toggle('active');
-                        target.classList.add('highlight');
-                        target.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center"
-                        });
-                    }, 500);
-                }
-                // correct overjump (phantom whitespace) in case of bottom-targets:
-                setTimeout(() => {
-                    window.scrollBy(0, -500);
-                }, 1000);
-            
-                // reset the color after a short delay
-                setTimeout(() => {
-                    target.classList.remove("highlight");
-                }, 3000);
-                });
-        });
-    }
-}
-
- /**
- * define panel name based on ids of href-targets
- * @param {String} targetId: href-value of anchors pointing
- * to internal targets (#targetId)
- * @returns {String} panelName: name of the panel,
- * default: "contents"
- */
-function definePanelNameByTargetId(targetId) {
-
-    let panelName;
-    switch (true) {
-        case (/#f-/.test(targetId)):
-            panelName = "figures";
-            break;
-        case (/#fn-/.test(targetId) || /#ref-fn-/.test(targetId)):
-            panelName = "notes";
-            break;
-        case (/#ref-/.test(targetId)):
-            panelName = "references";
-            break;
-        case (/#target-gazetteer/.test(targetId)):
-            panelName = "gazetteer";
-            break;
-        case (/#target-arachne/.test(targetId)):
-            panelName = "arachne";
-            break;
-        case (/#target-field/.test(targetId)):
-            panelName = "field";
-            break;
-        default:
-            panelName = "contents";
-            break;
-    }
-    return(panelName);
-}
 
  /**
  * add <script>- or <link>-element to document head
@@ -353,29 +128,215 @@ function addScriptToDocumentHead(scriptName) {
 }
 
  /**
- * adjust column layout of text-content-wrapper when resizing
- * @param {JSON} event: oberserver event object 
- * @returns {void} changes display of sections in DOM by assigning
- * css-properties (column-count)
- * 
+ * re-apply initial hash after dynamic panel DOM has been created.
+ * @returns {void} triggers hash-based css target selection on first load.
  */
- function adjustColumnLayoutBasedOnWrapperWidth(event) {
+function syncInitialHash() {
+  let hash = window.location.hash;
+  if (!hash) return;
+  history.replaceState(null, "", "#");
+  window.location.hash = hash;
+}
 
-    let wrapper = event[0].target;
-    let selector = " .text-body > section";
-    let sectionElements = document.querySelectorAll(selector);
-    sectionElements.forEach(section => {
-        let sectionLevel = section.getAttribute("level");
-        if(wrapper.clientWidth <= 1000) {
-            section.style ="column-count:1";
-        }
-        if(wrapper.clientWidth > 1000) {
-            if(sectionLevel <= 2) {
-                section.style ="column-count:2";
+ /**
+ * handle hash-driven side effects while panel visibility is controlled by CSS.
+ * @returns {void} initializes map panel when required and keeps scroll correction behavior.
+ */
+function handleAnchorHashFeatures() {
+
+    // get current hash from url:
+    let currentHash = window.location.hash;
+    if(!currentHash) {return;}
+
+    // remove leading "#" because getElementById expects a plain id
+    let hashTargetId = decodeURIComponent(currentHash.slice(1));
+    let target = document.getElementById(hashTargetId);
+
+    // init maps when a target inside gazetteer is addressed directly
+    if(target !== null && target.closest("#gazetteer") !== null) {
+        setTimeout(() => {initMaps(".map");}, 500);
+    }
+
+    // init maps when the panel-state hash directly targets gazetteer panel
+    if(hashTargetId === "panel-gazetteer") {
+        setTimeout(() => {initMaps(".map");}, 500);
+    }
+
+    // keep existing overjump correction behavior for non-panel hash jumps
+    if(!hashTargetId.startsWith("panel-")) {
+        setTimeout(() => {
+            window.scrollBy(0, -500);
+        }, 1000);
+    }
+
+    // highlight/scroll mechanics for internal cross-reference anchors:
+    let anchors = document.querySelectorAll(
+        "a.fig-ref,a.bib-ref,a.fn-ref,a.box-ref,a.index-ref"
+        + ",a.ext-ref:not([data-specific-use='weblink'])"); // exclude weblinks
+    highlightAnchorTargets(anchors);
+}
+
+ /**
+ * restore highlight/scroll behavior for internal anchor targets.
+ * @param {NodeList} anchors: nodeList of internal anchors
+ * @returns {void} updates hash, scrolls target into view and applies temporary highlight.
+ */
+function highlightAnchorTargets(anchors) {
+
+    if(anchors !== undefined && anchors.length) {
+        anchors.forEach((anchor) => {
+            anchor.addEventListener("click", event => {
+                  console.log(anchor);
+                let targetRef = anchor.getAttribute("href");
+                if(targetRef === null || !targetRef.startsWith("#") || targetRef.includes(' ')) {
+                    return;
+                }
+
+                // avoid default jump to ensure deterministic panel + centered scrolling.
+                event.preventDefault();
+                window.location.hash = targetRef;
+
+                let target = document.querySelector(targetRef);
+                if(target !== null) {
+                    // keep slight delay so CSS-driven panel switching is applied before scrolling
+                    setTimeout(() => {
+                        target.classList.add("highlight");
+                        target.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                    }, 500);
+
+                    // keep legacy overjump correction behavior
+                    setTimeout(() => {
+                        window.scrollBy(0, -500);
+                    }, 1000);
+
+                    // reset highlight after short delay
+                    setTimeout(() => {
+                        target.classList.remove("highlight");
+                    }, 3000);
+                }
+            });
+        });
+    }
+}
+
+ /**
+ * focus toc-targets when hover over section
+ * @returns {void} classes of targeted toc elements will be changed
+ * if the element comes into viewport (detected by intersection observer)
+ */
+function focusTocTargetsOnHoverSection() {
+
+    const options = {threshold: 1,};
+    const observer = new IntersectionObserver(sections => {
+        sections.forEach(section => {
+
+            // get target reference by section headline:
+            let headline = section.target.firstElementChild;
+            let targetRefId;
+            if(headline != null) {
+                targetRefId = headline.getAttribute("href");
+            } else (targetRefId = null);
+    
+            // query target:
+            let target;
+            if(targetRefId !== null && !targetRefId.includes(' ')) {
+                targetRefId = targetRefId.slice(1); // remove #
+                target = document.getElementById(targetRefId);
+            } else target = null;
+
+            // reference comes into viewport (at bottom)
+            if (section.isIntersecting) { 
+                // handle target:
+                if(target !== null) {
+                    target.classList.add('active');
+                    target.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+                    target.ariaCurrent = "true";
+                }
+            } 
+            // element leaves the viewport (at top)
+            else {
+                if(target !== null) {
+                    target.classList.remove('active');
+                    target.ariaCurrent = "false";
+                }
             }
-        }
+        }, options);
+    });
+
+    // track all section elements:
+    document.querySelectorAll("section")
+        .forEach((element) => {observer.observe(element);
     });
 }
 
+ /**
+ * init(ialize) map containers for leaflet
+ * @param {String} selector css-selector of map container(s)
+ * @returns {void} handles over mapId and coords to createMap()
+ */
+function initMaps(selector) {
 
+    let maps = document.querySelectorAll(selector);
+    maps.forEach(map => {
+        let coords = [];
+        let longitude = parseFloat(map.getAttribute("longitude"));
+        let latitude = parseFloat(map.getAttribute("latitude"));
+        // check if value is parseable finite number (!== null)
+        if(Number.isFinite(longitude) && Number.isFinite(latitude)) {
+            coords.push(longitude);
+            coords.push(latitude);
+        // no coordinates available:
+        } else {
+            coords = false;
+        }
+        createMap(map.id, coords);
+    });
+}
 
+ /**
+ * create leaflet maps
+ * @param {String} mapId: ids of map elements (divs with class 'map')
+ * @param {Array} coordinates: array wit long and lat values
+ * @returns {void} instantiates leaflet maps (e.g. mapLayers and marker)
+ */
+function createMap(mapId, coordinates) {
+
+    // set tile layers:
+    let mapLayer = L.tileLayer.wms("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
+        tiled: true,
+        format: "image/jpeg",
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+
+    // define map parameter:
+    let location = (coordinates) ? {lat: coordinates[1], lng: coordinates[0]} : [0,0];
+    let zoom = (coordinates) ? 8 : 1;
+
+    // instantiate map:
+    if(!document.querySelector("#" + mapId + " > .leaflet-pane")) {
+        let map = L.map(document.querySelector("#" + mapId), {
+            zoom: zoom,
+            doubleClickZoom: false,
+            dragging: false,
+            zoomSnap: false,
+            trackResize: false,
+            touchZoom: false,
+            scrollWheelZoom: false,
+            center: location,
+        });
+        mapLayer.addTo(map);             // show mapLayer by default
+        L.control.scale().addTo(map);    // show dynamic scale (Maßstab)
+      
+        // add location marker:
+        let marker = L.marker(location).addTo(map);
+        if(!coordinates) {
+            marker.bindPopup("No coordinates available.").openPopup();
+        }
+    }
+}
