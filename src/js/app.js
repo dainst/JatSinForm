@@ -26,32 +26,32 @@ const scriptLibrary = {
     "pagedJs": {
         "type": "text/javascript",
         "src-remote": "https://unpkg.com/pagedjs/dist/paged.polyfill.js",
-        "src-local": "src/js/pagedJs.js"
+        "src-local": "lib/pagedJs/pagedJs_0.4.3.js"
     },
     "highlightJs": {
         "type": "text/javascript",
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
+        "src-local": "lib/highlightJs/highlightJs_11.10.0.js",
     },
     "highlightJsCss": {
         "type": "text/css",
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
+        "src-local": "lib/highlightJs/highlightJsCss_11.10.0.css",
     },
-    "leaflet": {
+   "leaflet": {
         "type": "text/javascript",
         "src-remote": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
-        "src-local": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        "src-local": "lib/leaflet/leaflet_1.9.4.js" 
     },
     "leafletCss": {
         "type": "text/css",
         "src-remote": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-        "src-local": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        "src-local": "lib/leaflet/leafletCss_1.9.4.css"
     },
     "fontAwesome": {
         "type": "text/css",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" // "src/css/font-awesome-min.css"
+        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css",
+        "src-local": "lib/fontAwesome/fontAwesome_6.0.0_all.css"
     },
     "interactJs": {
         "type": "text/javascript",

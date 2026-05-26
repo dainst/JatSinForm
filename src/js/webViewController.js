@@ -2,46 +2,35 @@
  * html view script libraries 
  * @type {Constants}
 ---------------------------------------*/
+const domain = "http://localhost:3000/jatsinform/"
 const htmlViewScriptLibrary = {
     "highlightJs": {
         "type": "text/javascript",
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js",
+        "src-local": domain + "lib/highlightJs/highlightJs_11.10.0.js",
     },
     "highlightJsCss": {
         "type": "text/css",
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
+        "src-local": domain + "lib/highlightJs/highlightJsCss_11.10.0.css",
     },
     "leaflet": {
         "type": "text/javascript",
         "src-remote": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
-        "src-local": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        "src-local": domain + "lib/leaflet/leaflet_1.9.4.js" 
     },
     "leafletCss": {
         "type": "text/css",
         "src-remote": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-        "src-local": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        "src-local": domain + "lib/leaflet/leafletCss_1.9.4.css"
     },
     "fontAwesome": {
         "type": "text/css",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
-        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" // "src/css/font-awesome-min.css"
+        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css",
+        "src-local": domain + "lib/fontAwesome/fontAwesome_6.0.0_all.css"
     }
 } 
 
-const navIcons = {
-    "cover": "<span class='fa fa-file-text' aria-hidden='true'></span>",
-    "contents": "<span class='fa fa-list' aria-hidden='true'></span>",
-    "figures": "<span class='fa fa-image' aria-hidden='true'></span>",
-    "notes": "<span class='fa fa-list-ol' aria-hidden='true'></span>",
-    "references": "<span class='fa fa-book' aria-hidden='true'></span>",
-    "gazetteer": "<span class='fa fa-map' aria-hidden='true'></span>",
-    "arachne": "<span class='fa fa-database' aria-hidden='true'></span>",
-    "field": "<span class='fa fa-database' aria-hidden='true'></span>",
-    "metadata": "<span class='fa fa-info' aria-hidden='true'></span>",
-    "stats": "<span class='fa fa-bar-chart' aria-hidden='true'></span>"
-}
 /** ---------------------------------
  * document state event listener:
  * @type {EventListenerObject}
@@ -50,7 +39,7 @@ const navIcons = {
 
     if (event.target.readyState === "interactive") {
         
-        // document is single HTML downloaded or html view from xml
+        // document is single HTML downloaded or generated on the fly
         let isSingleHTMLFile;
         if(document.querySelector('meta[name="--from-xml"]') === null) {
             isSingleHTMLFile = true;
@@ -82,12 +71,17 @@ const navIcons = {
         handleAnchorHashFeatures();
         window.addEventListener("hashchange", handleAnchorHashFeatures);
 
-        // sync initial panel hash:
-        if (!window.location.hash) {window.location.hash = "#panel-cover";}
-        syncInitialHash();
+        // sync initial panel hash (#panel-cover by default):
+        if (!window.location.hash) {window.location.hash = "#panel-cover"}
+        // re-apply initial hash after dynamic panel DOM has been created
+        setTimeout(() => {
+            let hash = window.location.hash;
+            if (!hash) return;
+            history.replaceState(null, "", "#");
+            window.location.hash = hash;
+        }, 1000);
     }
 });
-
 
 /** ------------
  FUNCTIONS
@@ -125,17 +119,6 @@ function addScriptToDocumentHead(scriptName) {
     else {
         console.warn("ScriptName [" + scriptName + "] not defined in scriptLibary")
     }
-}
-
- /**
- * re-apply initial hash after dynamic panel DOM has been created.
- * @returns {void} triggers hash-based css target selection on first load.
- */
-function syncInitialHash() {
-  let hash = window.location.hash;
-  if (!hash) return;
-  history.replaceState(null, "", "#");
-  window.location.hash = hash;
 }
 
  /**
