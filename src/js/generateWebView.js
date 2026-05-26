@@ -3,6 +3,17 @@
 ----------------------------------------*/
 // initialize navigationPanels array:
 const navigationPanelsDocument = [];
+const navIcons = {
+    "cover": "<span class='fa fa-file-text' title='Text/Cover' aria-hidden='true'></span>",
+    "contents": "<span class='fa fa-list' title='Table of Contents' aria-hidden='true'></span>",
+    "figures": "<span class='fa fa-image' title='Figures' aria-hidden='true'></span>",
+    "notes": "<span class='fa fa-list-ol' title='Notes' aria-hidden='true'></span>",
+    "references": "<span class='fa fa-book' title='References' aria-hidden='true'></span>",
+    "gazetteer": "<span class='fa fa-map' title='Locations' aria-hidden='true'></span>",
+    "arachne": "<span class='fa fa-database' title='Objects from iDAI.objects/arachne' aria-hidden='true'></span>",
+    "field": "<span class='fa fa-database' title='Objects from iDAI.field' aria-hidden='true'></span>",
+    "metadata": "<span class='fa fa-info' title='Metadata' aria-hidden='true'></span>"
+}
 
 // navigation element to switch between each panel
 const mainHeader = document.createElement("header");
@@ -60,6 +71,7 @@ panelWrapper.tabIndex = -1;
 
         // add cover-area to navigation-panel first:
         const panelMainText = createPanel("cover", false);
+        panelMainText.prepend(createSkipLinks());
         panelMainText.appendChild(coverArea);
         navigationPanelsDocument.push("cover")
 
@@ -92,7 +104,7 @@ panelWrapper.tabIndex = -1;
 
         // create meta-panel:
         let panelMeta = createPanel("metadata", "Metadata", false);
-        panelWrapper.appendChild(panelMeta);
+        console.log(panelMeta);
         navigationPanelsDocument.push("metadata");
        
         // create meta section:
@@ -102,6 +114,7 @@ panelWrapper.tabIndex = -1;
             metaSection = createMetaSection(front);
             panelMeta.appendChild(metaSection);
         }
+        panelWrapper.appendChild(panelMeta);
 
         // get main-text:
         let textBody = htmlWrapper.querySelector(".text-body");
@@ -130,7 +143,6 @@ panelWrapper.tabIndex = -1;
         main.appendChild(article);
 
         // add mainHeader and main to body:
-        document.body.prepend(createSkipLinks());
         document.body.appendChild(mainHeader);
         document.body.appendChild(main);
         createPanelNavigation(navigationPanelsDocument);
@@ -236,25 +248,19 @@ function createSkipLinks() {
     skipNav.classList.add("skip-links");
     skipNav.ariaLabel = "Skip links";
 
-    let skipToPanelNav = document.createElement("a");
-    skipToPanelNav.classList.add("skip-link");
-    skipToPanelNav.href = "#panel-navigation";
-    skipToPanelNav.textContent = "Skip to panel navigation";
-
     let skipToMainText = document.createElement("a");
     skipToMainText.classList.add("skip-link");
     skipToMainText.href = "#text-content-wrapper";
     skipToMainText.textContent = "Skip to main text";
 
-    let skipToSupplementaryPanel = document.createElement("a");
-    skipToSupplementaryPanel.classList.add("skip-link");
-    skipToSupplementaryPanel.href = "#panel-wrapper";
-    skipToSupplementaryPanel.textContent = "Skip to supplementary panel navigation";
+    let skipToPanelNav = document.createElement("a");
+    skipToPanelNav.classList.add("skip-link");
+    skipToPanelNav.href = "#panel-navigation";
+    skipToPanelNav.textContent = "Skip to panel navigation";
 
-    skipNav.appendChild(skipToPanelNav);
     skipNav.appendChild(skipToMainText);
-    skipNav.appendChild(skipToSupplementaryPanel);
-
+    skipNav.appendChild(skipToPanelNav);
+ 
     return(skipNav);
 }
 
@@ -854,20 +860,20 @@ function createPanel(panelName, defaultTitle = false, content = false) {
     panel.id = panelName;
     panel.role = "region";
     panel.tabIndex = -1;
+    panel.setAttribute("aria-labelledby", "panel-" + panelName);
   
     // add panel content
     if(content) {panel.appendChild(content);}
 
     // no panel title for metadata and cover
     if(panelName == "metadata" || panelName == "cover" ) {
-       return(panel)
+       return(panel);
     }
 
     // add panel title:
     let title = document.createElement("h3");
     title.classList.add("title", "panel-title", "section-title");
     title.id = "panel-title-" + panelName;
-    panel.setAttribute("aria-labelledby", title.id);
     let givenTitle = panel.querySelector(".title");
     if(givenTitle !== null) {
         title.textContent = givenTitle.textContent;
@@ -968,6 +974,7 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
             // create details element for displaying results:
             let internalIndexBox = document.createElement("details");
             internalIndexBox.classList.add("internal-index-box");
+            internalIndexBox.ariaLabel = "All objects quoted in main text or footnote";
            
             // create summary as button title:
             let internalIndexSummary = document.createElement("summary");
@@ -977,12 +984,14 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
      
             // parse and list positive results in form of quotes:
             if(refIndex.totalNumber !== 0) {
-               let list = document.createElement("ul");
+                let list = document.createElement("ul");
+                list.ariaLabel = "List of internal references"
                 for (let i = 0; i < refIndex.refLinks.length; ++i) {
 
                     // create elements:
                     let listElement = document.createElement("li");
                     listElement.classList.add("quote-list-entry");
+                    listElement.ariaLabel = "Single quote entry"
                     let labelAnchor = document.createElement("a");
                     labelAnchor.classList.add("index-ref");
                     labelAnchor.href = "#" + refIndex.refLinks[i];
@@ -990,14 +999,14 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
                     // define targetPanelName for back-anchor 
                     if(refIndex.quotesTargetSection[i] == "main-text") {
                         labelAnchor.setAttribute("data-target-section", "contents");
+                        labelAnchor.title = "Jump to " + refIndex.refLinks[i] + " in main text";
                     } else {
                         labelAnchor.setAttribute("data-target-section", "notes");
+                        labelAnchor.title = "Jump to " + refIndex.refLinks[i] + " in footnote section";
                     }
                    
                     let visibleSpan = document.createElement("span");
-                    visibleSpan.title = "Jump to " + refIndex.refLinks[i];
                     visibleSpan.ariaHidden = true;
-                    visibleSpan.innerHTML = '<i class="fa fa-link" aria-hidden="true"></i>';
                     labelAnchor.appendChild(visibleSpan);
 
                     let hiddenSpan = document.createElement("span");
@@ -1196,6 +1205,7 @@ function createPanelNavigation(navigationPanelsDocument) {
     panelNavigation.appendChild(panelNavigationHint);
 
     let panelNavigationList = document.createElement("ul");
+    panelNavigationList.ariaLabel = "navigation list";
 
     // create elements for each panel name:
     if(navigationPanelsDocument.length > 0) {
@@ -1203,6 +1213,7 @@ function createPanelNavigation(navigationPanelsDocument) {
             // list elements:
             let li = document.createElement("li");
             li.classList.add("nav-" + panelName);
+            li.ariaLabel = "navigation list element";
 
             // anchor links:
             let anchor = document.createElement("a");
@@ -1993,12 +2004,17 @@ function addBackLinkAnchorToFootnote(footnote) {
             let backAnchor = document.createElement("a");
             backAnchor.classList.add("index-ref");
             backAnchor.href = "#" + textToFnAnchor.id;
+            backAnchor.title = "Jump back to position in main text";
 
             let visibleSpan = document.createElement("span");
             visibleSpan.title = "Jump back to position in main text";
             visibleSpan.ariaHidden = true;
-            visibleSpan.innerHTML = '<i class="fa fa-link" aria-hidden="true"></i>';
             backAnchor.appendChild(visibleSpan);
+
+            let hiddenSpan = document.createElement("span");
+            hiddenSpan.classList.add("screenreader-only");
+            hiddenSpan.textContent = "Jump back to position in main text";
+            backAnchor.appendChild(hiddenSpan);
             
             footnote.insertAdjacentElement("afterbegin", backAnchor);
         }
