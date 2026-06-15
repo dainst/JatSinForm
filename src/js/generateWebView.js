@@ -61,11 +61,18 @@ panelWrapper.tabIndex = -1;
 
     if (event.target.readyState === "complete") {
 
-        // get html-wrapper:
+        // get html-wrapper and front (meta):
         let htmlWrapper = document.querySelector("#html-wrapper");
+        let front = htmlWrapper.querySelector(".front");
 
         // create cover area: 
         let coverArea = createCoverArea(htmlWrapper);
+
+        // append projectMetaSection to coverArea:
+        let projectMetaSection = createProjectMetaSection(front);
+        coverArea.appendChild(projectMetaSection);
+     
+        // append abstracts to coverArea:
         let abstractSection = getAbstractSection(htmlWrapper);
         coverArea.appendChild(abstractSection);
 
@@ -104,11 +111,9 @@ panelWrapper.tabIndex = -1;
 
         // create meta-panel:
         let panelMeta = createPanel("metadata", "Metadata", false);
-        console.log(panelMeta);
         navigationPanelsDocument.push("metadata");
        
         // create meta section:
-        let front = document.querySelector(".front");
         let metaSection;
         if(front !== null) {
             metaSection = createMetaSection(front);
@@ -175,98 +180,214 @@ panelWrapper.tabIndex = -1;
     }
 });
 
+
+/** -----------------------------
+* Generate HTML view of document
+--------------------------------*/
+
 /**
- * create imprint section to display journal information related to imprint
- * @param {DocumentFragment} front html-element with xml-front elements
- * @returns {HTMLElement} imprintSection: enhanced with imprint information  
+ * create article header
+ * @param {HTMLElement} htmlWrapper: entire html-document converted from xml
+ * @returns {HTMLElement} articleHeader with title, subtitle and author information
  */
-function createImprintSection(front) {
+function createCoverArea(htmlWrapper) {
 
-    // prepare imprint elements:
-    let imprintSection = document.createElement("section");
-    imprintSection.classList.add("imprint-section");
+    // create inner div for fully collapsing the coverArea:
+    let coverArea = document.createElement("div");
+    coverArea.id = "cover-area";
+ 
+    // get cover page elements:
+    let doiElement = createDoiElement();
+    let title = htmlWrapper.querySelector(".article-title");
+    let subtitle = htmlWrapper.querySelector(".article-subtitle");
+    let authors = htmlWrapper.querySelectorAll(".contrib[contrib-type='author']");
+    let contributors = htmlWrapper.querySelectorAll(".contrib[contrib-type='co-author']");
 
-    // journal title:
-    let journalTitle;
-    let journalDOI;
-    let journalDOILink;
-    if(front.querySelector(".journal-title") !== null) {
-        journalTitle = front.querySelector(".journal-title");
-        // add journal DOI:
-        if(front.querySelector(".journal-id[journal-id-type='doi']") !== null) {
-            journalDOI = front.querySelector(".journal-id[journal-id-type='doi']");
-            journalDOILink = document.createElement("a");
-            journalDOILink.id = "journal-doi-link";
-            journalDOILink.href = journalDOI.innerText;
-            journalDOILink.textContent = journalTitle.textContent;
-            journalTitle.innerHTML = journalDOILink.outerHTML;
-        } else {
-            journalTitle.innerHTML = journalTitle.innerText;
+    // transform author information to String:
+    let authorsCollection = [];
+    let givenName;
+    let surName;
+    for (let i = 0; i < authors.length; i++) {
+        if(authors[i].querySelector(".given-names") !== null) {
+            givenName = authors[i].querySelector(".given-names").textContent;
         }
-        imprintSection.appendChild(journalTitle);
-    }
-
-    // publisher:
-    let publisher;
-    if(front.querySelector(".publisher") !== null) {
-        publisher = front.querySelector(".publisher");
-        imprintSection.appendChild(publisher);
-    }
-
-    // parse customMetaGroup:
-    let customMetas;
-    let customMetaSection = document.createElement("div");
-    customMetaSection.classList.add("custom-meta-section")
-    if(front.querySelector(".custom-meta-group") !== null) {
-        customMetas = front.querySelectorAll(".custom-meta");
-        for (let i = 0; i < customMetas.length; i++) {
-            let metaName = customMetas[i].querySelector(".meta-name");
-            if(/label/.test(metaName.textContent)) {
-                customMetas[i].style.display = "none";
-            }
-            if(/url/.test(metaName.textContent)) {
-                customMetas[i].style.display = "none";
-            }
-            if(/publishing-history/.test(metaName.textContent)) {
-                customMetas[i].style.display = "none";
-            }
-            customMetaSection.appendChild(customMetas[i]);
+        if(authors[i].querySelector(".surname") !== null) {
+            surName = authors[i].querySelector(".surname").textContent;
         }
-        imprintSection.appendChild(customMetaSection);
+        authorsCollection.push(givenName + " " + surName);
     }
 
-    return (imprintSection);
+    // transform contributors information to String:
+    let contributorsCollection = [];
+    let givenNameContributor;
+    let surNameContributor;
+    for (let i = 0; i < contributors.length; i++) {
+        if(contributors[i].querySelector(".given-names") !== null) {
+            givenNameContributor = contributors[i].querySelector(".given-names").textContent;
+        }
+        if(contributors[i].querySelector(".surname") !== null) {
+            surNameContributor = contributors[i].querySelector(".surname").textContent;
+        }
+        contributorsCollection.push(givenNameContributor + " " + surNameContributor);
+    }
+
+    // create articleHeader elements:
+    let titleElement = document.createElement("h1");
+    titleElement.className = "article-title";
+    let subtitleElement = document.createElement("p");
+    subtitleElement.className = "article-subtitle";
+    let authorsElement = document.createElement("p");
+    authorsElement.className = "article-authors";
+    let contributorsElement = document.createElement("p");
+    contributorsElement.className = "article-contributors";
+
+    // fill articleHeader elements with content:
+    let lang = document.documentElement.lang;
+    titleElement.innerHTML = (title) ? title.textContent : "[Kein Titel]";
+    subtitleElement.innerHTML = (subtitle) ? subtitle.textContent : "";
+    authorsElement.innerHTML = (authorsCollection.length) ? authorsCollection.join(", ") : "[Keine Autoren]";
+    if(contributorsCollection.length && lang !== undefined) {
+        contributorsElement.innerHTML = contributorsPrepositions[lang] + " " + contributorsCollection.join(", ");
+    }
+
+    // get poster-image:
+    let posterImage;
+    if(htmlWrapper.querySelector("#poster-image") !== null) {
+        posterImage = htmlWrapper.querySelector("#poster-image");
+        if(posterImage.querySelector(".attribution") !== null) {
+            let posterImageAttrib = posterImage.querySelector(".attribution");
+            posterImageAttrib.classList.add("poster-image-attribution");
+        }
+        // add accessability helper (altText, role)
+        if(posterImage.querySelector("img") !== null) {
+            posterImage.querySelector("img").classList.add("poster-img");
+            posterImage.querySelector("img").alt = "";
+            posterImage.querySelector("img").role = "presentation";
+        }
+    } else {
+        posterImage = document.createElement("p");
+        posterImage.id = "poster-image-missing"
+        posterImage.textContent = "[no-poster-image]";
+    }
+
+    // create journal logo:
+    let logo = document.createElement("figure");
+    logo.id ="journal-logo";
+    if(localStorage.getItem("journal-config") !== null) {
+        let journalConfig = JSON.parse(localStorage.getItem("journal-config"));
+        let logoPath = journalConfig["logoPath"];
+        let logoImg = document.createElement("img");
+        logoImg.classList.add("logo-img");
+        logoImg.src = logoPath;
+        logoImg.alt = "Logo of the journal"
+        logo.appendChild(logoImg);
+    }
+   
+    // append elements to coverArea:
+    coverArea.appendChild(logo);
+    coverArea.append(posterImage);
+    coverArea.append(doiElement);
+    coverArea.append(titleElement);
+    coverArea.append(titleElement);
+    coverArea.append(subtitleElement);
+    coverArea.append(authorsElement);
+    coverArea.append(contributorsElement);
+    
+    return (coverArea);
 }
 
 /**
- * Accessability feature: create keyboard skip links for top-level navigation targets
- * @returns {HTMLElement} nav element with skip links
+ * create DOI element, added as first element on top of page
+ * @returns {HTMLElement} doiElement: div with anchor as child and doi as href
+ * and textContent
  */
-function createSkipLinks() {
+function createDoiElement() {
 
-    let skipNav = document.createElement("nav");
-    skipNav.classList.add("skip-links");
-    skipNav.ariaLabel = "Skip links";
+    // get documentId (= DOI), saved in localStorage 
+    let documentId = getDocumentStateProperty("documentId");
+    let doi = (documentId) ? documentId : "no-doi-assigned";
 
-    let skipToMainText = document.createElement("a");
-    skipToMainText.classList.add("skip-link");
-    skipToMainText.href = "#text-content-wrapper";
-    skipToMainText.textContent = "Skip to main text";
+    // create anchor element:
+    let doiAnchor = document.createElement("a");
+    doiAnchor.id = "doi-anchor";
+    doiAnchor.target = "_blank";
+    doiAnchor.rel = "noopener noreferrer";
+    doiAnchor.ariaLabel = "DOI (opens in new tab)";
+    doiAnchor.href = doi;
+    doiAnchor.textContent = doi;
 
-    let skipToPanelNav = document.createElement("a");
-    skipToPanelNav.classList.add("skip-link");
-    skipToPanelNav.href = "#panel-navigation";
-    skipToPanelNav.textContent = "Skip to panel navigation";
+    return (doiAnchor);
+}
 
-    skipNav.appendChild(skipToMainText);
-    skipNav.appendChild(skipToPanelNav);
- 
-    return(skipNav);
+/**
+ * create abstract section (for abstract and trans-abstract in each language)
+ * @param {HTMLElement} htmlWrapper: entire html-document converted from xml
+ * @returns {HTMLElement} abstractSection: section with abstract texts and keywords
+ */
+function getAbstractSection(htmlWrapper) {
+
+    // create abstract-section:
+    let abstractSection = document.createElement("section");
+    abstractSection.id = "abstract-section";
+
+    // query abstract content
+    let abstracts = htmlWrapper.querySelectorAll(".abstract, .trans-abstract");
+    if(abstracts.length) {
+        abstracts.forEach(function(abstract) {
+            // get abstract lang and abstract title:
+            let abstractLang = abstract.getAttribute("lang");
+            let abstractTitle;
+            if(abstract.querySelector(".title") !== null) {
+                abstractTitle = abstract.querySelector(".title").textContent.trim();
+            } 
+            else {
+                abstractTitle = "Abstract (" + abstractLang + ")";
+            }
+
+            // get abstract text:
+            let abstractTextElement;
+            if(abstract.querySelector(".abstract-text") !== null) {
+                abstractTextElement = abstract.querySelector(".abstract-text");
+            } 
+            else if(abstract.querySelector("p") !== null) {
+                abstractTextElement = abstract.querySelector("p");
+                abstractTextElement.classList.add("abstract-text");
+            }
+            else {
+                abstractTextElement = document.createElement("p");
+                abstractTextElement.classList.add("abstract-text");
+            }
+          
+            // create abstract elements view:
+            if(abstractTextElement !== null) {
+                if(abstractLang !== null) {
+                    // add lang:attribute to abstract text element:
+                    abstractTextElement.setAttribute("lang", abstractLang);
+            
+                    // create abstract tab box:
+                    let abstractDetails = document.createElement("details");
+                    abstractDetails.classList.add("abstract-details")
+                    abstractDetails.id = abstractTitle;
+
+                    // create abstract nav buttons:
+                    let abstractSummary = document.createElement("summary");
+                    abstractSummary.classList.add("abstract-summary");
+                    abstractSummary.textContent = abstractTitle;
+
+                    // append all together:
+                    abstractDetails.appendChild(abstractSummary);
+                    abstractDetails.appendChild(abstractTextElement);
+                    abstractSection.appendChild(abstractDetails);
+                }
+            }
+        });
+    }
+    return(abstractSection);
 }
 
 /**
  * create meta section to display article-meta and journal-meta
- * @param {DocumentFragment} front html-element with xml-front elements
+ * @param {DocumentFragment} articleMeta: front elements related to article
  * @returns {HTMLElement} metaSection enhanced with meta information  
  */
 function createMetaSection(front) {
@@ -279,24 +400,13 @@ function createMetaSection(front) {
     metaSectionTitle.textContent = "Metadata";
     metaSection.appendChild(metaSectionTitle);
 
-    // prepare article meta:
-    let articleMetaSection = createArticleMetaSection(front);
+    // split article-meta and journal-meta:
+    let articleMeta = front.querySelector(".article-meta");
+    let journalMeta = front.querySelector(".journal-meta");
 
-    // journal-meta
-    let journalMetaSection = document.createElement("section");
-    journalMetaSection.id = "journal-meta-section";
-
-    let journalMetaTitle = document.createElement("h3");
-    journalMetaTitle.classList.add("title", "panel-subsection-title");
-    journalMetaTitle.textContent = "About Journal";
-    journalMetaSection.appendChild(journalMetaTitle);
-   
-    let imprintSection = createImprintSection(front);
-    journalMetaSection.appendChild(imprintSection);
-
-    let journalContributorsDetails = createContributorsDetails(front, false);
-    journalContributorsDetails.classList.add("journal-contributors");
-    journalMetaSection.appendChild(journalContributorsDetails);
+    // create article meta and journal-meta section:
+    let articleMetaSection = createArticleMetaSection(articleMeta);
+    let journalMetaSection = createJournalMetaSection(journalMeta);
 
     // format-meta:
     let formatMetaSection = document.createElement("section");
@@ -319,7 +429,44 @@ function createMetaSection(front) {
     return(metaSection);
 }
 
-function createArticleMetaSection(front) {
+/**
+ * create project-meta-section like cooperations, funding etc.
+ * @param {DocumentFragment} articleMeta html-element with xml-front elements
+ * @returns {HTMLElement} projectMetaSection with defined properties
+ */
+function createProjectMetaSection(articleMeta) {
+
+    let lang = document.documentElement.lang;
+    let projectMetaSection = document.createElement("section");
+    projectMetaSection.id = "project-meta-section";
+
+    let projectMetaProperties =  ["cooperations", "funding", "project-lead", "project-team"];
+    projectMetaProperties.forEach(propertyName => {
+        // define meta element:
+        let metaElement = document.createElement("p");
+        metaElement.id = propertyName;
+        
+        // select value from articleMeta
+        let selector = "." + propertyName + "> .meta-value";
+        metaElement.textContent = articleMeta.querySelector(selector).textContent;
+        
+        // add title as span:
+        let titleSpan = document.createElement("span");
+        titleSpan.classList.add("project-meta-title-span");
+        titleSpan.textContent = defaultTitles[propertyName][lang] + ": ";
+        metaElement.prepend(titleSpan);
+        projectMetaSection.appendChild(metaElement);
+
+    });
+    return(projectMetaSection)
+}
+
+/**
+ * create article meta section based on article-meta from xml-front
+ * @param {DocumentFragment} articleMeta html-element with xml-front elements
+ * @returns {HTMLElement} articleMetaSection with metadata properties
+ */
+function createArticleMetaSection(articleMeta) {
 
     // prepare elements:
     let articleMetaSection = document.createElement("section");
@@ -330,20 +477,21 @@ function createArticleMetaSection(front) {
     articleMetaSection.appendChild(articleMetaTitle);
 
     // add contributors:
-    let articleContributorsDetails = createContributorsDetails(front, true);
+    let articleContributorsDetails = createContributorsDetails(articleMeta, true);
     articleMetaSection.appendChild(articleContributorsDetails);
 
     // transform date meta to iso-8601-date:
-    if(front.querySelector(".date") !== null) {
-        let date = front.querySelector(".date");
+    if(articleMeta.querySelector(".date") !== null) {
+        let date = articleMeta.querySelector(".date");
         if(date.getAttribute("iso-8601-date") !== null) {
             date.textContent = date.getAttribute("iso-8601-date");
         }
     }
 
     // add basic meta:
-    let metaElementSelectors = ".article-id,.article-title,.article-subtitle,.date,.volume,.copyright-statement:not([content-type='print'],.license[license-type='text']";
-    let metaElements = front.querySelectorAll(metaElementSelectors);
+    let metaElementSelectors = ".article-id,.article-title,.article-subtitle,.date,.volume " + 
+    ",.copyright-statement:not([content-type='print'],.license[license-type='text']";
+    let metaElements = articleMeta.querySelectorAll(metaElementSelectors);
     metaElements.forEach(element => {
         
         // create meta elements container:
@@ -363,12 +511,114 @@ function createArticleMetaSection(front) {
     });
 
     // license information:
-    if(front.querySelectorAll(".license-p").length > 0) {
-        front.querySelectorAll(".license-p").forEach(element => {
+    if(articleMeta.querySelectorAll(".license-p").length > 0) {
+        articleMeta.querySelectorAll(".license-p").forEach(element => {
             articleMetaSection.appendChild(element);
         });
     }
+
+    // parse customMetaGroup:
+    let customMetas;
+    let customMetaSection = document.createElement("div");
+    customMetaSection.classList.add("custom-meta-section")
+    if(articleMeta.querySelector(".custom-meta-group") !== null) {
+        customMetas = articleMeta.querySelectorAll(".custom-meta:not(.title-department," + 
+            ".title-topic-location,.cooperations,.funding,.project-lead,.project-team)");
+        for (let i = 0; i < customMetas.length; i++) {
+            customMetaSection.appendChild(customMetas[i]);
+        }
+        articleMetaSection.appendChild(customMetaSection);
+    }
+
     return(articleMetaSection);
+}
+
+/**
+ * create journal meta section based on article-meta from xml-front
+ * @param {DocumentFragment} journalMeta html-element with xml-front elements
+ * @returns {HTMLElement} journalMetaSection with metadata properties
+ */
+function createJournalMetaSection(journalMeta) {
+
+    let journalMetaSection = document.createElement("section");
+    journalMetaSection.id = "journal-meta-section";
+
+    let journalMetaTitle = document.createElement("h3");
+    journalMetaTitle.classList.add("title", "panel-subsection-title");
+    journalMetaTitle.textContent = "About Journal";
+    journalMetaSection.appendChild(journalMetaTitle);
+
+    let imprintSection = createImprintSection(journalMeta);
+    journalMetaSection.appendChild(imprintSection);
+
+    let journalContributorsDetails = createContributorsDetails(journalMeta, false);
+    journalContributorsDetails.classList.add("journal-contributors");
+    journalMetaSection.appendChild(journalContributorsDetails);
+
+    return(journalMetaSection);
+}
+
+/**
+ * create imprint section to display journal information related to imprint
+ * @param {DocumentFragment} journalMeta html-element with journal meta elements
+ * @returns {HTMLElement} imprintSection: enhanced with imprint information  
+ */
+function createImprintSection(journalMeta) {
+
+    // prepare imprint elements:
+    let imprintSection = document.createElement("section");
+    imprintSection.classList.add("imprint-section");
+
+    // journal title:
+    let journalTitle;
+    let journalDOI;
+    let journalDOILink;
+    if(journalMeta.querySelector(".journal-title") !== null) {
+        journalTitle = journalMeta.querySelector(".journal-title");
+        // add journal DOI:
+        if(journalMeta.querySelector(".journal-id[journal-id-type='doi']") !== null) {
+            journalDOI = journalMeta.querySelector(".journal-id[journal-id-type='doi']");
+            journalDOILink = document.createElement("a");
+            journalDOILink.id = "journal-doi-link";
+            journalDOILink.href = journalDOI.innerText;
+            journalDOILink.textContent = journalTitle.textContent;
+            journalTitle.innerHTML = journalDOILink.outerHTML;
+        } else {
+            journalTitle.innerHTML = journalTitle.innerText;
+        }
+        imprintSection.appendChild(journalTitle);
+    }
+
+    // publisher:
+    let publisher;
+    if(journalMeta.querySelector(".publisher") !== null) {
+        publisher = journalMeta.querySelector(".publisher");
+        imprintSection.appendChild(publisher);
+    }
+
+    // parse customMetaGroup:
+    let customMetas;
+    let customMetaSection = document.createElement("div");
+    customMetaSection.classList.add("custom-meta-section")
+    if(journalMeta.querySelector(".custom-meta-group") !== null) {
+        customMetas = journalMeta.querySelectorAll(".custom-meta");
+        for (let i = 0; i < customMetas.length; i++) {
+            let metaName = customMetas[i].querySelector(".meta-name");
+            if(/label/.test(metaName.textContent)) {
+                customMetas[i].style.display = "none";
+            }
+            if(/url/.test(metaName.textContent)) {
+                customMetas[i].style.display = "none";
+            }
+            if(/publishing-history/.test(metaName.textContent)) {
+                customMetas[i].style.display = "none";
+            }
+            customMetaSection.appendChild(customMetas[i]);
+        }
+        imprintSection.appendChild(customMetaSection);
+    }
+
+    return (imprintSection);
 }
 
 /**
@@ -500,208 +750,6 @@ function createContributorsCard(contributor) {
         contributorsCard.append(email);
     }
     return(contributorsCard);
-}
-
-/** -----------------------------
-* Generate HTML view of document
---------------------------------*/
-/**
- * create article header
- * @param {HTMLElement} htmlWrapper: entire html-document converted from xml
- * @returns {HTMLElement} articleHeader with title, subtitle and author information
- */
-function createCoverArea(htmlWrapper) {
-
-    // create inner div for fully collapsing the coverArea:
-    let coverArea = document.createElement("div");
-    coverArea.id = "cover-area";
- 
-    // get cover page elements:
-    let doiElement = createDoiElement();
-    let title = htmlWrapper.querySelector(".article-title");
-    let subtitle = htmlWrapper.querySelector(".article-subtitle");
-    let authors = htmlWrapper.querySelectorAll(".contrib[contrib-type='author']");
-    let contributors = htmlWrapper.querySelectorAll(".contrib[contrib-type='co-author']");
-
-    // transform author information to String:
-    let authorsCollection = [];
-    let givenName;
-    let surName;
-    for (let i = 0; i < authors.length; i++) {
-        if(authors[i].querySelector(".given-names") !== null) {
-            givenName = authors[i].querySelector(".given-names").textContent;
-        }
-        if(authors[i].querySelector(".surname") !== null) {
-            surName = authors[i].querySelector(".surname").textContent;
-        }
-        authorsCollection.push(givenName + " " + surName);
-    }
-
-    // transform contributors information to String:
-    let contributorsCollection = [];
-    let givenNameContributor;
-    let surNameContributor;
-    for (let i = 0; i < contributors.length; i++) {
-        if(contributors[i].querySelector(".given-names") !== null) {
-            givenNameContributor = contributors[i].querySelector(".given-names").textContent;
-        }
-        if(contributors[i].querySelector(".surname") !== null) {
-            surNameContributor = contributors[i].querySelector(".surname").textContent;
-        }
-        contributorsCollection.push(givenNameContributor + " " + surNameContributor);
-    }
-
-    // create articleHeader elements:
-    let titleElement = document.createElement("h1");
-    titleElement.className = "article-title";
-    let subtitleElement = document.createElement("p");
-    subtitleElement.className = "article-subtitle";
-    let authorsElement = document.createElement("p");
-    authorsElement.className = "article-authors";
-    let contributorsElement = document.createElement("p");
-    contributorsElement.className = "article-contributors";
-
-    // fill articleHeader elements with content:
-    let lang = document.documentElement.lang;
-    titleElement.innerHTML = (title) ? title.textContent : "[Kein Titel]";
-    subtitleElement.innerHTML = (subtitle) ? subtitle.textContent : "";
-    authorsElement.innerHTML = (authorsCollection.length) ? authorsCollection.join(", ") : "[Keine Autoren]";
-    if(contributorsCollection.length && lang !== undefined) {
-        contributorsElement.innerHTML = contributorsPrepositions[lang] + " " + contributorsCollection.join(", ");
-    }
-
-    // get poster-image:
-    let posterImage;
-    if(htmlWrapper.querySelector("#poster-image") !== null) {
-        posterImage = htmlWrapper.querySelector("#poster-image");
-        if(posterImage.querySelector(".attribution") !== null) {
-            let posterImageAttrib = posterImage.querySelector(".attribution");
-            posterImageAttrib.classList.add("poster-image-attribution");
-        }
-        // add accessability helper (altText, role)
-        if(posterImage.querySelector("img") !== null) {
-            posterImage.querySelector("img").classList.add("poster-img");
-            posterImage.querySelector("img").alt = "";
-            posterImage.querySelector("img").role = "presentation";
-        }
-    } else {
-        posterImage = document.createElement("p");
-        posterImage.id = "poster-image-missing"
-        posterImage.textContent = "[no-poster-image]";
-    }
-
-    // create journal logo:
-    let logo = document.createElement("figure");
-    logo.id ="journal-logo";
-    if(localStorage.getItem("journal-config") !== null) {
-        let journalConfig = JSON.parse(localStorage.getItem("journal-config"));
-        let logoPath = journalConfig["logoPath"];
-        let logoImg = document.createElement("img");
-        logoImg.classList.add("logo-img");
-        logoImg.src = logoPath;
-        logoImg.alt = "Logo of the journal"
-        logo.appendChild(logoImg);
-    }
-
-    // append elements to coverArea:
-    coverArea.appendChild(logo);
-    coverArea.append(posterImage);
-    coverArea.append(doiElement);
-    coverArea.append(titleElement);
-    coverArea.append(subtitleElement);
-    coverArea.append(authorsElement);
-    coverArea.append(contributorsElement);
-  
-    return (coverArea);
-}
-
-/**
- * create DOI element, added as first element on top of page
- * @returns {HTMLElement} doiElement: div with anchor as child and doi as href
- * and textContent
- */
-function createDoiElement() {
-
-    // get documentId (= DOI), saved in localStorage 
-    let documentId = getDocumentStateProperty("documentId");
-    let doi = (documentId) ? documentId : "no-doi-assigned";
-
-    // create anchor element:
-    let doiAnchor = document.createElement("a");
-    doiAnchor.id = "doi-anchor";
-    doiAnchor.target = "_blank";
-    doiAnchor.rel = "noopener noreferrer";
-    doiAnchor.ariaLabel = "DOI (opens in new tab)";
-    doiAnchor.href = doi;
-    doiAnchor.textContent = doi;
-
-    return (doiAnchor);
-}
-
-/**
- * create abstract section (for abstract and trans-abstract in each language)
- * @param {HTMLElement} htmlWrapper: entire html-document converted from xml
- * @returns {HTMLElement} abstractSection: section with abstract texts and keywords
- */
-function getAbstractSection(htmlWrapper) {
-
-    // create abstract-section:
-    let abstractSection = document.createElement("section");
-    abstractSection.id = "abstract-section";
-
-    // query abstract content
-    let abstracts = htmlWrapper.querySelectorAll(".abstract, .trans-abstract");
-    if(abstracts.length) {
-        abstracts.forEach(function(abstract) {
-            // get abstract lang and abstract title:
-            let abstractLang = abstract.getAttribute("lang");
-            let abstractTitle;
-            if(abstract.querySelector(".title") !== null) {
-                abstractTitle = abstract.querySelector(".title").textContent.trim();
-            } 
-            else {
-                abstractTitle = "Abstract (" + abstractLang + ")";
-            }
-
-            // get abstract text:
-            let abstractTextElement;
-            if(abstract.querySelector(".abstract-text") !== null) {
-                abstractTextElement = abstract.querySelector(".abstract-text");
-            } 
-            else if(abstract.querySelector("p") !== null) {
-                abstractTextElement = abstract.querySelector("p");
-                abstractTextElement.classList.add("abstract-text");
-            }
-            else {
-                abstractTextElement = document.createElement("p");
-                abstractTextElement.classList.add("abstract-text");
-            }
-          
-            // create abstract elements view:
-            if(abstractTextElement !== null) {
-                if(abstractLang !== null) {
-                    // add lang:attribute to abstract text element:
-                    abstractTextElement.setAttribute("lang", abstractLang);
-            
-                    // create abstract tab box:
-                    let abstractDetails = document.createElement("details");
-                    abstractDetails.classList.add("abstract-details")
-                    abstractDetails.id = abstractTitle;
-
-                    // create abstract nav buttons:
-                    let abstractSummary = document.createElement("summary");
-                    abstractSummary.classList.add("abstract-summary");
-                    abstractSummary.textContent = abstractTitle;
-
-                    // append all together:
-                    abstractDetails.appendChild(abstractSummary);
-                    abstractDetails.appendChild(abstractTextElement);
-                    abstractSection.appendChild(abstractDetails);
-                }
-            }
-        });
-    }
-    return(abstractSection);
 }
 
 /**
@@ -928,7 +976,6 @@ function createDocumentStats(numSupplements) {
     // add result as table data to infos panel: 
     let statsTable = document.createElement("table");
     statsTable.classList.add("stats-table");
-
     let tableData =
         "<tr><td>Sections:</td><td class='value'>" + sections.length + "</td></tr>" +
         "<tr><td>Paragraphs:</td><td class='value'>" + paragraphs.length + "</td></tr>" +
@@ -1657,7 +1704,6 @@ function parseFieldData(data) {
             imageSource = imageApiUrl + imageSpecs;
         }
     }
-
     return {
         "project": data.project,
         "shortDescription": shortDescription,
@@ -1949,6 +1995,31 @@ async function createExternalObjectImage(url, objectVisualization) {
 /** -----------------------------------------
 *  ui and web-accessability related functions
 --------------------------------------------*/
+/**
+ * Accessability feature: create keyboard skip links for top-level navigation targets
+ * @returns {HTMLElement} nav element with skip links
+ */
+function createSkipLinks() {
+
+    let skipNav = document.createElement("nav");
+    skipNav.classList.add("skip-links");
+    skipNav.ariaLabel = "Skip links";
+
+    let skipToMainText = document.createElement("a");
+    skipToMainText.classList.add("skip-link");
+    skipToMainText.href = "#text-content-wrapper";
+    skipToMainText.textContent = "Skip to main text";
+
+    let skipToPanelNav = document.createElement("a");
+    skipToPanelNav.classList.add("skip-link");
+    skipToPanelNav.href = "#panel-navigation";
+    skipToPanelNav.textContent = "Skip to panel navigation";
+
+    skipNav.appendChild(skipToMainText);
+    skipNav.appendChild(skipToPanelNav);
+ 
+    return(skipNav);
+}
 
 /**
  * add title of resources (references) as tool-tip of bib-refs
