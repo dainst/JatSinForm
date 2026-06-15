@@ -95,14 +95,6 @@ document.addEventListener("readystatechange", (event) => {
         // add favicon link
         document.head.appendChild(faviconLink);
 
-        // add third-party libraries and stylesheets:
-        addScriptToDocumentHead("highlightJs");
-        addScriptToDocumentHead("highlightJsCss");
-        addScriptToDocumentHead("leaflet");
-        addScriptToDocumentHead("leafletCss");
-        addScriptToDocumentHead("fontAwesome");
-        addScriptToDocumentHead("interactJs");
-
         // get control-keys config
         requestSourceFile("configs/controlKeyList.json", "control-key-list");
  
@@ -127,6 +119,9 @@ document.addEventListener("readystatechange", (event) => {
 
         // get journalId from xml-doc:
         let journalId = xmlDoc.querySelector("journal-id").textContent;
+        let articleTitle = xmlDoc.querySelector("article-title").textContent;
+        let metaTitle = document.createElement("title");
+        metaTitle.textContent = journalId + ": " + articleTitle;
 
        // switch between pdf and viewer-format:
        if (localStorage.getItem("renderAs") === "PDF") {
@@ -136,6 +131,12 @@ document.addEventListener("readystatechange", (event) => {
             // get view (and journal) specific styles:
             let styleSheetLink = getStyleSheetLink(journalId, "pagedView");
             document.head.appendChild(styleSheetLink);
+            document.head.appendChild(metaTitle);
+
+            // add helper scripts:
+            addScriptToDocumentHead("highlightJs");
+            addScriptToDocumentHead("highlightJsCss");
+            addScriptToDocumentHead("interactJs");
 
             // add render scripts:
             addScriptToDocumentHead("generatePagedView");
@@ -149,6 +150,7 @@ document.addEventListener("readystatechange", (event) => {
             // get view (and journal) specific styles:
             let styleSheetLink = getStyleSheetLink(journalId, "htmlView");
             document.head.appendChild(styleSheetLink);
+            document.head.appendChild(metaTitle);
 
             // add json-LD:
             let jsonLD = localStorage.getItem('json-LD');
@@ -157,6 +159,13 @@ document.addEventListener("readystatechange", (event) => {
             script.type = 'application/ld+json';
             script.textContent = JSON.stringify(jsonLD);
             document.head.appendChild(script);
+
+            // add helper scripts:
+            addScriptToDocumentHead("highlightJs");
+            addScriptToDocumentHead("highlightJsCss");
+            addScriptToDocumentHead("leaflet");
+            addScriptToDocumentHead("leafletCss");
+            addScriptToDocumentHead("fontAwesome");
 
             // add render scripts:
             addScriptToDocumentHead("generateWebView");
@@ -467,7 +476,7 @@ async function processXmlDocument(xmlDoc) {
         console.warn("Notice for editors:\n" + 
             "This article has more figures than paragraphs [" + 
             figures.length + " to " + paragraphs.length + "].\n" +
-            "A figure-to-paragraph ratio of at least 1:1 is recommended!")
+            "A figure-to-paragraph ratio of at least 1:2 is recommended!")
     }
 
     // add style related properties to documentRoot:
@@ -1134,8 +1143,8 @@ async function downloadHTMLDocument() {
     }
   
     // set script and css-links
-    const viewControllerPath = scriptsDomain + 'jatsinform/src/js/webViewController.js';
-    const viewerCssPath = scriptsDomain + 'jatsinform/src/css/viewer-styles.css';
+    const viewControllerPath = appBaseUrl + 'jatsinform/src/js/webViewController.js';
+    const viewerCssPath = appBaseUrl + 'jatsinform/src/css/viewer-styles.css';
   
     // get json-LD
     let jsonLD = localStorage.getItem('json-LD');
@@ -1451,42 +1460,6 @@ function getStyleSheetLink(journalId, view) {
     return (styleSheetLink)
 }
 
-function getComputedStylesOfTextElements() {
-
-    let documentRoot = document.querySelector(':root');
-
-    // get and parse declared style properties of text-content:
-    let paraFont = getComputedStyle(documentRoot).getPropertyValue("--long-text-font-family"); 
-    let paraFontSizeDeclared = getComputedStyle(documentRoot).getPropertyValue("--p-font-size");
-    let lineHeightDeclaredPara = getComputedStyle(documentRoot).getPropertyValue("--line-height-para");
-    let lineHeightPara = (lineHeightDeclaredPara) ? lineHeightDeclaredPara : 1.5; 
-    let paraFontSize = (paraFontSizeDeclared) ? paraFontSizeDeclared.slice(0, -2) * 1.333 : 12.5; 
-    let heightParagraphLinePx = paraFontSize * lineHeightPara; 
-
-    // get and parse declared style properties of figCaptions:
-    let captionFont = getComputedStyle(documentRoot).getPropertyValue("--short-text-font-family");
-    let captionFontSizeDeclared = getComputedStyle(documentRoot).getPropertyValue("--caption-font-size");
-    let lineHeightDeclaredCap = getComputedStyle(documentRoot).getPropertyValue("--line-height-cap");
-    let lineHeightCap = (lineHeightDeclaredCap) ? lineHeightDeclaredCap : 1.37; 
-    let captionFontSize = (captionFontSizeDeclared) ? captionFontSizeDeclared.slice(0, -2) * 1.333 : 9.75;
-    let heightCaptionLinePx = captionFontSize * lineHeightCap;
-
-    // collect computed styles in object
-    let computedTextStyles = {
-        "paraFont": paraFont,
-        "paraFontSizeDeclared": paraFontSizeDeclared,
-        "paraFontSize": paraFontSize,
-        "heightParagraphLinePx": heightParagraphLinePx,
-        "lineHeightPara": lineHeightPara,
-        "lineHeightCap": lineHeightCap,
-        "captionFont": captionFont,
-        "captionFontSizeDeclared": captionFontSizeDeclared,
-        "captionFontSize": captionFontSize,
-        "heightCaptionLinePx": heightCaptionLinePx,
-    }
-    return(computedTextStyles);
-}
-
 function getTextWidth(text, font) {
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext("2d");
@@ -1577,6 +1550,8 @@ function interactJsController() {
     interact('.resizable').resizable({
         edges: {top: true, left: true, bottom: true, right: true},
         listeners: {move: function (event) {
+                let pagedJsArea = event.target.closest(".pagedjs_area");
+                pagedJsArea.style = "border:1pt dotted violet";
                 let {x, y} = event.target.dataset;
                 x = (parseFloat(x) || 0) + event.deltaRect.left;
                 y = (parseFloat(y) || 0) + event.deltaRect.top;
