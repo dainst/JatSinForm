@@ -65,7 +65,7 @@
     "journalMainColorHighContrast": "#164194",
     "logoPath": "src/css/assets/graphics/e-FB_Logo.png",
     "figCaptionsAtPageBottom": true,
-      "figureTypesettingClass": {
+    "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
       "tiny-square": "float-w-col-2",
       "tiny-portrait": "float-w-col-2",
@@ -81,9 +81,9 @@
     },
     "figureModelSpecs": {
       "float-w-col-2": ["25%", "100%"],
-      "float-w-col-4": ["35%", "100%"],
+      "float-w-col-4": ["50%", "100%"],
       "float-w-col-6": ["50%", "100%"],
-      "inset": ["60%", "100%"],
+      "inset": ["100%", "100%"],
       "regular": ["100%", "100%"],
       "regular-bottom": ["100%", "100%"],
       "overmargin-bottom": ["130%", "100%"]
