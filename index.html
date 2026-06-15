@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
    <head>
-      <title>JatSinForm</title>
+      <script type="text/javascript" src="configs/app-config.js"></script>
       <script type="text/javascript"src="src/js/app.js"></script>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,13 +10,6 @@
    </head>
    <body>
       <script>
-         // app deployment related:
-         const scriptsDomain = "http://localhost:3000/" 
-
-         // xml-document related constants:
-         const xmlFolder = "xml-documents" // path to xml directory
-         const xmlFromEditor = false;      // load editor-xml from localStorage
-        
          // all views related:
          const base64ImgConversion = true;
          const imgQuality = 0.75; // 1 = without compression
@@ -33,7 +26,7 @@
          const pagesFlexDirection = "row"; // "row" or "column"
          const firstTextPageId = "page-2";
          const autoAvoidOrphans = true;
-         const noOrphanArea = 100;     // height in px from page bottom
+         const noOrphanArea = 120;     // e.g. 120: height in px from page bottom
          const maxAbstractLength = 2500;
          const maxFootnoteLength = 2000;
          const maxCaptionLength = 1000;
@@ -99,7 +92,7 @@
             },
             "sourceOfIllustrations": {
                "de": "Abbildungsnachweise",
-               "en": "Source of Illustrations",
+               "en": "Illustrations credits",
                "fr": "Crédits des illustrations",
                "it": "Crediti delle illustrazioni",
                "sp": "Créditos de las ilustraciones",
@@ -112,6 +105,38 @@
                "it": "Note",
                "sp": "Notas",
                "es": "Notas"
+            },
+            "cooperations": {
+               "de": "Kooperationspartner",
+               "en": "Cooperation partners",
+               "fr": "Partenaires de coopération",
+               "it": "Partner di cooperazione",
+               "sp": "Socios de cooperación",
+               "es": "Socios de cooperación"
+            },
+            "funding": {
+               "de": "Förderung",
+               "en": "Financial Support",
+               "fr": "Soutien financier",
+               "it": "Sostegno finanziario",
+               "sp": "Apoyo financiero",
+               "es": "Apoyo financiero"
+            },
+            "project-lead": {
+               "de": "Leitung des Projekts",
+               "en": "Project Lead",
+               "fr": "Responsable du projet",
+               "it": "Responsabile del progetto",
+               "sp": "Responsable del proyecto",
+               "es": "Responsable del proyecto"
+            },
+            "project-team": {
+               "de": "Projektteam",
+               "en": "Project Team",
+               "fr": "Équipe du projet",
+               "it": "Team di progetto",
+               "sp": "Equipo del proyecto",
+               "es": "Equipo del proyecto"
             }
          };
          const contributorsPrepositions = {
