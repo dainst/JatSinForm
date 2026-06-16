@@ -446,17 +446,18 @@ function createProjectMetaSection(articleMeta) {
         let metaElement = document.createElement("p");
         metaElement.id = propertyName;
         
-        // select value from articleMeta
+        // populate project meta section with content:
         let selector = "." + propertyName + "> .meta-value";
-        metaElement.textContent = articleMeta.querySelector(selector).textContent;
-        
-        // add title as span:
-        let titleSpan = document.createElement("span");
-        titleSpan.classList.add("project-meta-title-span");
-        titleSpan.textContent = defaultTitles[propertyName][lang] + ": ";
-        metaElement.prepend(titleSpan);
-        projectMetaSection.appendChild(metaElement);
-
+        if(articleMeta.querySelector(selector) !== null) {
+            // select value from articleMeta
+            metaElement.textContent = articleMeta.querySelector(selector).textContent;
+            // add title as span:
+            let titleSpan = document.createElement("span");
+            titleSpan.classList.add("project-meta-title-span");
+            titleSpan.textContent = defaultTitles[propertyName][lang] + ": ";
+            metaElement.prepend(titleSpan);
+            projectMetaSection.appendChild(metaElement);
+        }
     });
     return(projectMetaSection)
 }

@@ -632,18 +632,18 @@ function createProjectMetaSection(content) {
         // define meta element:
         let metaElement = document.createElement("p");
         metaElement.id = propertyName;
-        
-        // select value from articleMeta
+        // populate project meta section with content
         let selector = "." + propertyName + "> .meta-value";
-        metaElement.textContent = content.querySelector(selector).textContent;
-        
-        // add title as span:
-        let title = document.createElement("h3");
-        title.classList.add("project-meta-title");
-        title.textContent = defaultTitles[propertyName][lang];
-        projectMetaSection.appendChild(title);
-        projectMetaSection.appendChild(metaElement);;
-
+        if(content.querySelector(selector) !== null) {
+            // select value from articleMeta
+            metaElement.textContent = content.querySelector(selector).textContent;
+            // add title as span:
+            let title = document.createElement("h3");
+            title.classList.add("project-meta-title");
+            title.textContent = defaultTitles[propertyName][lang];
+            projectMetaSection.appendChild(title);
+            projectMetaSection.appendChild(metaElement);
+        }
     });
     return(projectMetaSection)
 }
