@@ -76,8 +76,8 @@ body {
 }
 
 #main-wrapper {
-   height: 100vh;
-    min-width: 97vw;
+    height: 100vh;
+    min-width: 96vw;
     display: flex;
     flex-direction: column-reverse;
 }
@@ -109,6 +109,7 @@ article {
     overflow-x: hidden;
     resize:horizontal;
     height: 100vh;
+    box-shadow: inset -3px 0px 14px 0px #969696;
 }
 
 .text-body {
@@ -136,13 +137,13 @@ a#back-to-top {
     margin-left: 1.25%;
     margin-bottom: 1%;
     z-index: 99;
-    opacity:0.75;
-    background-color: var(--journal-color-high-contrast);
+    opacity: 0.9;
+    background-color: #d7d7d7;
     cursor: pointer;
     padding: 5px 15px;
     font-size: 1.5rem;
     border-radius: 10px;
-    color:white;
+    color: #000000;
     text-decoration: none;
 }
 
@@ -151,6 +152,9 @@ a#back-to-top:before {
 }
 
 nav.panel-navigation {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     background-color: var(--journal-color-high-contrast);
     font-family: var(--primary-font-family);
     height: 100%;
@@ -207,6 +211,10 @@ span.fa {
 .panel-buttons.active {
     background: var(--content-background);
     color:var(--journal-color-high-contrast);
+}
+
+#logo-img-greif {
+    width: 4vw;
 }
 
 /* panel navigation controls
@@ -472,7 +480,6 @@ p.catalog-number {
 .paragraph-counter {
     font-size: 1rem;
     margin-right: 2vw;
-    color: gray;
     font-style:normal;
     cursor: help;
 }
@@ -590,6 +597,7 @@ a#journal-doi-link:visited {
 }
 
 a.fn-ref {
+    text-decoration: none;
     font-size: 1rem;
     color: var(--journal-color-high-contrast);
 }
@@ -645,6 +653,7 @@ a.index-ref {
 }
 
 a.index-ref::before {
+    font-size: 0.9rem;
     content: "\260D";
     padding-right: 0.5vw;
 }
@@ -654,7 +663,6 @@ a.index-ref > span {
     padding-right: 0.5vw;
     color: var(--journal-color-high-contrast);
 }
-
 
 /* Table elements 
 ---------------------*/
@@ -898,7 +906,6 @@ ul#toc-list {
 }
 
 .footnote > p {
-    color: rgb(65 65 65);
     font-size: var(--panel-text-font-size) !important;
     display: inline;
     word-break: break-word;
@@ -1126,11 +1133,7 @@ img:not(.iDAI-icon,.logo-img) {
     cursor:help;
 }
 
-#journal-logo {
-    padding: 0 15% 0 0;
-}
-
-.logo-img {
+#journal-logo > .logo-img {
     width: 75%;
     background: none;
     box-shadow: none;
@@ -1690,21 +1693,6 @@ details[open] summary::before {
     direction: rtl;
 }
 
-/* -- Scrollbar 
----------------------*/
-::-webkit-scrollbar {
-    background: #ffffff;
-    width: 0.75vw;
-}
-
-::-webkit-scrollbar-track {
-    border:0.5pt solid rgb(201, 199, 199);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--journal-color-high-contrast);
-}
-
 @keyframes fadeIn {
     0% { opacity: 0; }
     100% { opacity: 1; }
@@ -1849,6 +1837,10 @@ details[open] summary::before {
     span.fa {
         padding: 1vh 2vw;
         font-size: 1.25rem;
+    }
+
+    a#dai-home {
+       display:none;
     }
 
     p[id] {
