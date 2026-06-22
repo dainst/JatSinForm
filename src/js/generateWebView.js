@@ -156,6 +156,9 @@ panelWrapper.tabIndex = -1;
         let statsSection = createDocumentStats(numSupplements);
         panelContents.appendChild(statsSection);
 
+        // add dai-home link to panelNavigation:
+        addDaiHomeLinkToPanelNavigation();
+        
         // remove <front> and <back> and htmlWrapper (empty)
         if(htmlWrapper.querySelector(".front") !== null) {htmlWrapper.querySelector(".front").remove();}
         if(htmlWrapper.querySelector(".back") !== null) {htmlWrapper.querySelector(".back").remove();}
@@ -490,8 +493,8 @@ function createArticleMetaSection(articleMeta) {
     }
 
     // add basic meta:
-    let metaElementSelectors = ".article-id,.article-title,.article-subtitle,.date,.volume " + 
-    ",.copyright-statement:not([content-type='print'],.license[license-type='text']";
+    let metaElementSelectors = ".article-id,.article-title,.article-subtitle,.date,.volume," +
+    ".copyright-statement:not([content-type='print']),.license[license-type='text']";
     let metaElements = articleMeta.querySelectorAll(metaElementSelectors);
     metaElements.forEach(element => {
         
@@ -511,7 +514,7 @@ function createArticleMetaSection(articleMeta) {
         articleMetaSection.appendChild(metaElement);
     });
 
-    // license information:
+    // license-p (specific license statements):
     if(articleMeta.querySelectorAll(".license-p").length > 0) {
         articleMeta.querySelectorAll(".license-p").forEach(element => {
             articleMetaSection.appendChild(element);
@@ -2152,4 +2155,22 @@ function scaleImage(img) {
     else if(natWidth < targetWidth) {
         img.style = "max-height:max-content;max-width:" + natWidth + "px;";
     }
+}
+
+// add dai-home link to panelNavigation
+function addDaiHomeLinkToPanelNavigation() {
+    
+    let homepageLink = document.createElement("a");
+    homepageLink.id = "dai-home";
+    homepageLink.href = "https://www.dainst.org/forschung/publikationen";
+    homepageLink.ariaLabel = "Jump to publisher website (opens in new tab)";
+    homepageLink.target = "_blank";
+    
+    let daiGreif = document.createElement("img");
+    daiGreif.id = "logo-img-greif";
+    daiGreif.classList.add("logo-img");
+    daiGreif.src = "src/css/assets/graphics/greif.png";
+    daiGreif.alt = "DAI Greif" 
+    homepageLink.appendChild(daiGreif);
+    document.querySelector("#panel-navigation").append(homepageLink);
 }
