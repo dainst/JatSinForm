@@ -270,7 +270,7 @@ body {
     font-size: 17pt;
     font-weight: 400;
     text-transform: uppercase;
-    margin-top: 30mm;
+    margin-top: 30.5mm;
 }
 
 #title-department:before {
@@ -861,7 +861,7 @@ a.backLinkToFnRef:before {
 .contributors-card > .email:before {
     content: "@";
     font-style: normal;
-    margin-right: 5pt;
+    margin-right: 6pt;
 }
 
 .contributor-link {
