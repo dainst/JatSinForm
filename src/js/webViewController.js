@@ -169,7 +169,6 @@ function highlightAnchorTargets(anchors) {
     if(anchors !== undefined && anchors.length) {
         anchors.forEach((anchor) => {
             anchor.addEventListener("click", event => {
-                  console.log(anchor);
                 let targetRef = anchor.getAttribute("href");
                 if(targetRef === null || !targetRef.startsWith("#") || targetRef.includes(' ')) {
                     return;
