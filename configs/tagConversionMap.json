@@ -257,6 +257,16 @@
             "className": "prefix",
             "obligatory": false
         },
+        "suffix": {
+            "tagName": "span",
+            "className": "suffix",
+            "obligatory": false
+        },
+        "string-name": {
+            "tagName": "p",
+            "className": "string-name",
+            "obligatory": false
+        },
         "address": {
             "tagName": "div",
             "className": "address",
@@ -413,6 +423,16 @@
             "className": "copyright-statement",
             "metaTitle": "Copyright",
             "setAttribute": "content-type",
+            "obligatory": false
+        },
+        "copyright-holder": {
+            "tagName": "p",
+            "className": "copyright-holder",
+            "obligatory": false
+        },
+        "copyright-year": {
+            "tagName": "p",
+            "className": "copyright-year",
             "obligatory": false
         },
         "license-p": {
