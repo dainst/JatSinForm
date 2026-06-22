@@ -670,11 +670,7 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
 
                 // transfer metaTitles as data-attribute:
                 if (metaTitle) {newElement.setAttribute("data-meta-title", metaTitle)};
-                if (selector == "license-p") {
-                    let contentType = xmlElements[i].getAttribute("content-type");
-                    if(contentType !== null) {newElement.
-                        setAttribute("data-meta-title", contentType)};
-                }
+        
                 // add new defined classnames in tagConversionMap
                 if (mapClassName) {newElement.classList.add(mapClassName);}
 
@@ -932,7 +928,6 @@ function processImageFiles() {
             figure.classList = newImg.classList;
             figure.setAttribute("data-img-width", newImg.naturalWidth);
             figure.setAttribute("data-img-height", newImg.naturalHeight);
-
         };
         newImg.onerror = function () {
             srcImage.alt = "Could not convert image: " + newImg.src;
@@ -1111,7 +1106,7 @@ async function downloadHTMLDocument() {
 
     // add root-styles:
     htmlDoc.documentElement.style.setProperty('--journal-color', journalColor);
-    htmlDoc.documentElement.style.setProperty('--journal-color-high-contrast', journalColor);
+    htmlDoc.documentElement.style.setProperty('--journal-color-high-contrast', journalColorHighContrast);
 
     // define fallback script:
     const fallbackScript = function fallback(noJs) {
@@ -1246,15 +1241,13 @@ async function canvasToDataURLAsync(canvas, type = 'image/webp', quality = 0.8) 
  * @returns {Promise<boolean>} resolves to true if converted, false if skipped or failed
  */
 
-async function convertImgElToWebPDataURL(imgEl, quality = 0.8) {
+async function convertImgElToWebPDataURL(imgEl, type = "image/webp", quality = 0.8) {
     try {
         // Skip if already a WebP data URL
         const src = imgEl.getAttribute('src') || '';
         if (src.startsWith('data:image/webp;base64,')) return false;
 
         // If the image is cross-origin without proper CORS, drawing will taint the canvas.
-        // We detect this by trying to read back; but better, try to ensure images are same-origin / CORS-enabled.
-        // If the <img> isn't fully loaded yet, wait for it.
         if (!imgEl.complete || imgEl.naturalWidth === 0) {
         await new Promise((res, rej) => {
             imgEl.addEventListener('load', res, { once: true });
@@ -1263,7 +1256,7 @@ async function convertImgElToWebPDataURL(imgEl, quality = 0.8) {
         }
 
         const canvas = canvasFromImage(imgEl);
-        const dataUrl = await canvasToDataURLAsync(canvas, 'image/webp', quality);
+        const dataUrl = await canvasToDataURLAsync(canvas, type, quality);
         imgEl.src = dataUrl;
 
         // (Optional) store intrinsic size on parent <figure>
