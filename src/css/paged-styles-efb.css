@@ -9,6 +9,7 @@
     --metadata-text-color: #030303;
     --color-marginBox: transparent;
     --para-font: "Noto Sans Regular"; /* "Noto Sans Regular"; */
+    --para-font-bold: "Noto Sans Semi Bold";
     --headline-font: "Geometria Light";
     --short-text-font: "Geometria Bold";
     --caption-font: "Geometria Light";
@@ -24,7 +25,6 @@
     --floatFigureMarginBottom: 5mm;
     --floatFigureOffsetToMarginArea: 0;
     --figureMarginBottomDefault: 5mm;
-    --cover-page-top-margin: 80mm;
     --max-page-content-height: 952; 
     --pagedjs-crop-color: black;
     --pagedjs-crop-shadow: white;
@@ -39,6 +39,8 @@
     size: 210mm 297mm;
     margin-top: 20mm;
     margin-bottom: 20mm;
+    margin-left: 23mm;
+    margin-right: 35mm; 
     /* marks: crop cross; */
     @top-center {
         content: var(--journal-title) " - " var(--volume);
@@ -61,22 +63,20 @@
 }
 
 @page :left {
-     /* 157 / 170 add 13mm */
-    margin-left: 23mm; /* 20mm */
-    margin-right: 35mm; /* 25mm */
+    margin-left: 23mm; 
+    margin-right: 35mm;
 }
 
 @page :right {
-    margin-left: 35mm;
-    margin-right: 23mm;
+    margin-left: 23mm;
+    margin-right: 35mm;
 }
 
 /* issue frontmatter page */
 @page :first {
+    counter-increment: page 0;
     font-family: "Geometria Bold";
     counter-increment: page 0;
-    margin-left: 30mm;
-    margin-right: 30mm;
     margin-bottom: 10mm;
     background: url("assets/graphics/background-efb-cover.jpg");
     background-position: var(--background-position);
@@ -98,8 +98,6 @@
 
 @page coverPage {
     counter-increment: page 0;
-    margin-left: 30mm;
-    margin-right: 30mm;
     background: var(--background-url) #ffffff;
     background-position: 0 0; /* 0 15m */
     background-size: contain;
@@ -114,6 +112,30 @@
     }
     @bottom-right-corner {
         content: "";
+    }
+    @bottom-center {
+        content: ""
+    }
+}
+
+@page projectMetaPage {
+    counter-increment: page 0;
+    @top-center {
+        content: var(--journal-title) " - " var(--volume);
+        font-family: var(--para-font);
+        font-size: 8pt;
+        font-weight: 300;
+        line-height: 1.5;
+        align-items: end;
+        color: var(--journal-color);
+        padding-bottom: 1mm;
+        margin-bottom: 2mm;
+        border-bottom: 1pt solid var(--journal-color);
+        text-align: center;
+    }
+    @top-center {
+        content: "";
+        border: none;
     }
     @bottom-center {
         content: ""
@@ -206,7 +228,7 @@ body {
 #journal-title {
     font-family: var(--short-text-font);
     color:white;
-    margin-top: var(--cover-page-top-margin);
+    margin-top: 125mm;
     font-size: 22pt;
 }
 
@@ -222,7 +244,7 @@ body {
     color: white;
     font-size: 12pt;
     font-weight: 300;
-    margin-top: 70mm;
+    margin-top: 50mm;
 }
 
 #topic-location > i {
@@ -248,16 +270,22 @@ body {
     font-size: 17pt;
     font-weight: 400;
     text-transform: uppercase;
-    margin-top: 57mm;
+    margin-top: 30mm;
+}
+
+#title-department:before {
+    font-family: var( --short-text-font);
+    content: "DAI ";
+    font-weight: 600;
 }
 
 /* cover-page:
  ----------------*/
 .title-header-title {
     page: coverPage;
-    margin-top: var(--cover-page-top-margin);
+    margin-top: 80mm;
     font-family: var(--short-text-font);
-    font-size: 18pt;
+    font-size: 17pt;
     line-height:1.25;
     text-transform:uppercase;
     color:black;
@@ -301,7 +329,7 @@ body {
     font-size: 14pt;
     text-transform: uppercase;
     color: black;
-    margin-bottom: 5pt;
+    margin-bottom: 2mm;
     margin-top: 5mm;
 }
 
@@ -359,6 +387,7 @@ body {
 /* project meta page
 -----------------------*/
 #project-meta-section {
+    page: projectMetaPage;
     break-after: page;
 }
 
@@ -377,8 +406,8 @@ body {
     font-size: 14pt;
     text-transform: uppercase;
     color: black;
-    margin-bottom: 5pt;
     margin-top: 0;
+    margin-bottom: 2mm;
 }
 
 /* text blocks
@@ -402,7 +431,7 @@ p {
 
 .paragraph-counter {
     font-family: var(--para-font);
-    color: var(--journal-color);
+    color: black;
     font-size: var(--p-font-size);
     font-style: normal;
     font-weight: 400;
@@ -430,7 +459,7 @@ li {
     font-size: var(--li-font-size);
     line-height: var(--line-height-para);
     padding-left: 2.5mm;
-    margin: 1.5mm 0;
+    margin: 2mm 0;
     text-align: justify;
     hyphens: auto;
     -moz-hyphens: auto;
@@ -518,7 +547,7 @@ h1, h2, h3, h4, h5, h6 {
     color: black;
     text-transform: uppercase;
     margin-top: 0;
-    margin-bottom: 6.35mm !important;
+    margin-bottom: 4.5mm !important;
 }
 
 .title-appendix.first-element {
@@ -555,7 +584,7 @@ a.fn-ref {
 }
 
 a.fig-ref {
-    font-weight: 600;
+    font-weight: 400;
 }
 
 a.bib-ref {
@@ -651,7 +680,7 @@ table td:first-child { border-left: none; }
 }
 
 #endnotes-section > .footnote > .label {
-    font-family: var(--short-text-font);
+    font-family: var(--para-font-bold);
     font-size: var(--footnote-font-size);
     margin: 0;
     margin-right: 2.5mm;
@@ -663,6 +692,11 @@ table td:first-child { border-left: none; }
     text-transform: uppercase;
     color: black;
     margin: 0 0 6.35mm 0;
+}
+
+a.backLinkToFnRef:before {
+    content: "\260D";
+    padding-right: 2mm;
 }
 
 /* reference List
@@ -686,23 +720,25 @@ table td:first-child { border-left: none; }
     padding-left: 0;
     page-break-inside: avoid;
     text-align: left;
-    display: block;
+    display: flex;
 }
 
 .reference > .mixed-citation {
     font-family: var(--para-font);
     font-size: var(--meta-element-font-size) !important;
     font-weight: 300; 
+    text-align: left;
+    hyphens:none;
+    width: 100%;
     margin:0;
-    text-align: justify;
 }
 
-.mixed-citation > .label {
-    font-family: var(--para-font);
+.reference > .label {
+    font-family: var(--para-font-bold);
     font-size: var(--meta-element-font-size) !important;
-    font-weight: 600; 
+    width: 50%;
     margin: 0;
-    padding-right: 5mm;
+    padding-right: 10mm;
     color: black;
 }
 
@@ -736,23 +772,17 @@ table td:first-child { border-left: none; }
 
 .credits {
     padding-left:0;
+    margin: 2.5mm 0;
+    display:flex;
+}
+
+.credits > .img-label {
+    font-family: var(--para-font-bold);
+    font-size: var(--meta-element-font-size) !important;
+    line-height: 1.385;/* 11.5pt to 8.3pt */
+    width:20%;
     margin: 0;
-}
-
-.credits > .license-p {
-    font-family: var(--para-font);
-    font-size: var(--meta-element-font-size) !important;
-    font-weight: 300;
-}
-
-.credits > .license-p::before {
-     content: " License: ";
-}
-
-.credits > .license-url {
-    font-family: var(--para-font);
-    font-size: var(--meta-element-font-size) !important;
-    font-weight: 300;
+    padding-right: 5mm;
 }
 
 .attribution {
@@ -760,17 +790,20 @@ table td:first-child { border-left: none; }
     font-weight: 300;
     line-height: 1.5 /* 14pt to 9.3pt */;
     font-size: var(--meta-element-font-size)!important;
-    margin: 1.5mm 0;
+    margin: 0;
     text-align: left;
+    width:100%;
 }
 
-.attribution > .img-label {
+.attribution > .license-url {
     font-family: var(--para-font);
     font-size: var(--meta-element-font-size) !important;
-    font-weight: 600; 
-    line-height: 1.385;/* 11.5pt to 8.3pt */
-    margin: 0;
-    padding-right: 5mm;
+    font-weight: 300;
+    display: block;
+}
+
+.attribution > .license-url:before {
+    content: "License: ";
 }
 
 /* meta-section (appendices):
@@ -797,7 +830,7 @@ table td:first-child { border-left: none; }
 }
 
 .trans-abstract > p {
-    margin: 2.5mm 0; 
+    margin-bottom: 2.5mm; 
     font-family: var(--para-font);
     font-size: var(--meta-element-font-size);
     line-height: 1.35;
@@ -821,6 +854,16 @@ table td:first-child { border-left: none; }
     margin: 0;
 }
 
+.contributors-card > .email {
+    font-style: italic;
+}
+
+.contributors-card > .email:before {
+    content: "@";
+    font-style: normal;
+    margin-right: 5pt;
+}
+
 .contributor-link {
     color: var(--metadata-text-color);
     display: inline-flex;
@@ -834,8 +877,8 @@ table td:first-child { border-left: none; }
     display: inline-block;
     background: url("assets/graphics/ORCID.png") no-repeat center center;
     background-size: contain;
-    width: 10pt;
-    height: 12pt;
+    width: 12pt;
+    height: 11pt;
     margin-right: 5pt;
 }
 
@@ -1144,6 +1187,7 @@ figCaption {
 }
 
 .caption-text {
+    font-style: italic;
     font-family: var(--caption-font);
     font-size: var(--caption-font-size);
     line-height: var(--line-height-cap);
@@ -1168,6 +1212,14 @@ figCaption {
 
 .fig-number.right-page {
     float:left;
+}
+
+figure > .license-p {
+    display:none;
+}
+
+figure > .license-url {
+    display:none;
 }
 
 /* ---------------------------------
@@ -1471,6 +1523,14 @@ ul.toc-list {
     src: url(assets/fonts/NotoSans-Regular.woff2) format("woff2"),
     	url(assets/fonts/NotoSans-Regular.woff) format("woff");
     font-weight: 400;
+    font-style: normal; 
+}
+
+@font-face {
+    font-family: "Noto Sans Semi Bold";
+    src: url(assets/fonts/NotoSans-SemiBold.woff2) format("woff2"),
+    	url(assets/fonts/NotoSans-SemiBold.woff) format("woff");
+    font-weight: 600;
     font-style: normal; 
 }
 
