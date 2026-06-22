@@ -199,15 +199,19 @@ function controlPagedJsHandler() {
                 let url = documentId;
                 url = (/https:/.test(url)) ? url : "https://doi.org/" + url;
             }
-
-            // add mouseover event class to typeset figures:
+            // post process images:
             document.querySelectorAll("FIGURE").forEach(element => {
                 if(element.firstElementChild !== null) {
-                    element.firstElementChild.addEventListener("mouseover", () => {
-                        element.firstElementChild.classList.toggle('active');
+                    let img = element.firstElementChild;
+                    // compress images based on imgQuality (see index.html)
+                    convertImgElToWebPDataURL(img, "image/jpeg", imgQuality);
+                    
+                    // add mouseover event class to typeset figures:
+                    img.addEventListener("mouseover", () => {
+                        img.classList.toggle('active');
                     })
-                    element.firstElementChild.addEventListener("mouseout", () => {
-                        element.firstElementChild.classList.remove('active');
+                    img.addEventListener("mouseout", () => {
+                        img.classList.remove('active');
                     })
                 }
             });
@@ -747,20 +751,37 @@ function reformatFootnotes(content) {
 /**
  * create endnotes section (for footnotes):
  * @param {DocumentFragment} content document-fragment made from original DOM
- * @returns {HTMLElement} endnotes container with fn-label and fn-text
+ * @returns {HTMLElement} endnotes container with fn-label, fn-text and fn-back-link
  */
 function createEndnotesSection(content) {
+
+    let lang = document.documentElement.lang;
     let endnotesSection = content.querySelector(".footnotes-section");
     if(endnotesSection !== null) {
         endnotesSection.id = "endnotes-section";
-        let lang = document.documentElement.lang;
+        // add default section title:
         let endnotesTitle = document.createElement("h3")
         endnotesTitle.innerHTML = defaultTitles["endnotes"][lang];
         endnotesTitle.classList.add("main-section-title");
         endnotesSection.insertAdjacentElement("afterbegin", endnotesTitle);
+        // remove given title
         if(endnotesSection.querySelector(".title") !== null) {
             endnotesSection.querySelector(".title").remove();
         }
+        // add back-links to each endnote
+        let endnotes = endnotesSection.querySelectorAll(".footnote");
+        endnotes.forEach(note => {
+            let backLinkToFnRef = document.createElement("a");
+            backLinkToFnRef.classList.add("backLinkToFnRef");
+            backLinkToFnRef.title = "Jump to paragraph";
+            let targetFnRefSelector = ".fn-ref[href='#" + note.id + "']";
+            let targetFnRef = content.querySelector(targetFnRefSelector);
+            if(targetFnRef !== null) {
+                backLinkToFnRef.href = "#" + targetFnRef.id;
+                note.insertAdjacentElement("afterbegin", backLinkToFnRef);
+            }
+        });
+  
     }
     return(endnotesSection)
 }
@@ -817,7 +838,6 @@ function createReferenceList(content) {
                     };
                 }
                 // extract reference text from ext-ref-element
-                // let citation = extRef.textContent;
                 mixedCitation.innerHTML = URLifyString(mixedCitation.textContent);
                 mixedCitation.append(extRefLink);
             }
@@ -831,7 +851,7 @@ function createReferenceList(content) {
 
             // append reference elements:
             references[i].innerHTML = "";
-            mixedCitation.prepend(label);
+            references[i].appendChild(label);
             // references[i].append(label);
             references[i].append(mixedCitation);
             referenceList.append(references[i]);
@@ -850,6 +870,7 @@ function recreateFiguresSection(content) {
 
     // check and clone original figure section:
     let figureSection;
+    let figures;
     if(content.querySelector(".figure-section") !== null) {
         figureSection = content.querySelector(".figure-section").cloneNode(true);
         figureSection.id = "cloned-images-container";
@@ -861,41 +882,39 @@ function recreateFiguresSection(content) {
     }
 
     // process each figure element:
+    let figure;
+    let img;
     let attribution;
     let licensePara;
     let licenseUrl;
     let label;
     for (let i = 0; i < figures.length; ++i) {
-        let img = figures[i].querySelector("img");
-      
-        if(figures[i].querySelector(".attribution") !== null) {
-            attribution = figures[i].querySelector(".attribution");
+        figure = figures[i];
+        img = figure.querySelector("img");
+
+        if(figure.querySelector(".attribution") !== null) {
+            attribution = figure.querySelector(".attribution");
         } else {
             attribution = document.createElement("p");
             attribution.classList.add("attribution");
             attribution.classList.add("warning-text");
             attribution.textContent = "[CREDIT ATTRIBUTION MISSING]";
         }
-
-        if(figures[i].querySelector(".license-p") !== null) {
-            licensePara = figures[i].querySelector(".license-p");
-        } else {
-            licensePara = document.createElement("p");
-            licensePara.classList.add("license-p");
-            licensePara.textContent = "[LICENSE MISSING]";
-        }
-
-        if(figures[i].querySelector(".license-url") !== null) {
-            licenseUrl = figures[i].querySelector(".license-url");
+        if(figure.querySelector(".license-p") !== null) {
+            licensePara = figure.querySelector(".license-p");
         }
         else {
-            licenseUrl = document.createElement("a");
-            licenseUrl.classList.add("license-url");
-            licenseUrl.textContent = "[LICENSE-URL-MISSING]";
+            licensePara  = document.createElement("p");
+            licensePara .classList.add("license-p");
         }
-
-        if(figures[i].querySelector(".label") !== null) {
-            label = figures[i].querySelector(".label");
+        if(figure.querySelector(".license-url") !== null) {
+            licenseUrl = figure.querySelector(".license-url");
+        } else {
+            licenseUrl = document.createElement("p");
+            licenseUrl.classList.add("license-p");
+        }
+        if(figure.querySelector(".label") !== null) {
+            label = figure.querySelector(".label");
         } else {
             label = document.createElement("span");
             label.textContent = "[LABEL MISSING]";
@@ -915,8 +934,8 @@ function recreateFiguresSection(content) {
         // check length of figCaption text:
         let figCaption;
         let figCaptionText;
-        if(figures[i].querySelector("figCaption") !== null) {
-            figCaption = figures[i].querySelector("figCaption");
+        if(figure.querySelector("figCaption") !== null) {
+            figCaption = figure.querySelector("figCaption");
         }
         else {
             figCaption = document.createElement("figCaption");
@@ -968,21 +987,24 @@ function createSourceOfIllustrations(figureSection) {
        // append credits for each figure
        let figures = figureSection.querySelectorAll("figure:not(#poster-image,#journal-logo)");
        for (let i = 0; i < figures.length; ++i) {
+            let credits = document.createElement("div");
+            credits.classList.add("credits");
+
             let label = figures[i].querySelector(".img-label");
             let labelCloned = label.cloneNode(true);
             let attribution = figures[i].querySelector(".attribution");
-            attribution.insertAdjacentElement("afterbegin", labelCloned);
-            
-            // build license statements with url
-            let licensePara = figures[i].querySelector(".license-p");
-            let licenseUrl = figures[i].querySelector(".license-url");
-            licenseUrl.textContent = licensePara.textContent; 
-            licensePara.remove();
-
-            let credits = document.createElement("div");
-            credits.classList.add("credits");
-            credits.append(attribution);
-            credits.append(licenseUrl);
+            credits.insertAdjacentElement("afterbegin", labelCloned);
+           
+            // build and add license statements with url
+            if(figures[i].querySelector(".license-p") !== null 
+            && figures[i].querySelector(".license-url") !== null) {
+                let licensePara = figures[i].querySelector(".license-p");
+                let licenseUrl = figures[i].querySelector(".license-url");
+                licenseUrl.textContent = licensePara.textContent;
+                attribution.append(licenseUrl);
+                licensePara.remove();
+            } 
+            credits.appendChild(attribution);
             sourceOfIllustrations.appendChild(credits);
        }
     }
@@ -1095,22 +1117,51 @@ function createContributorsCard(contributor) {
     let institution = document.createElement("p");
     let contribIdLink = document.createElement("a");
     let institutionIdLink = document.createElement("a");
-    let email = document.createElement("p");
 
+    // prefer string-name first, e.g. Dr. Werner Heisenberg
+    let preferredFullName = "";
+    if(contributor.querySelector(".string-name") !== null) {
+        preferredFullName = contributor.querySelector(".string-name").textContent;
+    }
     // parse and reorder names and contrib-ids (e.g. orcid):
-    if(contributor.querySelector(".given-names") !== null && contributor.querySelector(".surname") !== null) {
+    else if(contributor.querySelector(".given-names") !== null 
+    && contributor.querySelector(".surname") !== null){
+        // get prefix:
+        let prefix;
+        if(contributor.querySelector(".prefix") !== null) {
+            prefix = contributor.querySelector(".prefix").textContent;
+            preferredFullName = prefix;
+        }
+        // get surname and given-names
         let givenName = contributor.querySelector(".given-names").textContent;
         let surName = contributor.querySelector(".surname").textContent;
-        if(contributor.querySelector(".contrib-id") !== null) {
-            let contribId = contributor.querySelector(".contrib-id").textContent;
-            contribIdLink.classList.add("contributor-link");
-            contribIdLink.target = "_blank";
-            contribIdLink.href = contribId;
-            contribIdLink.innerHTML = givenName + " " + surName;
-            name.append(contribIdLink);
-        } else { name.innerHTML = givenName + " " + surName;}
-        contributorsCard.append(name);
-    };
+        preferredFullName = preferredFullName + " " + givenName + " " + surName;
+       
+        // get suffix:
+        let suffix;
+        if(contributor.querySelector(".suffix") !== null) {
+            suffix = contributor.querySelector(".suffix").textContent;
+            preferredFullName = preferredFullName + ", " + suffix;
+        }
+    }
+    // fallback:
+    else {
+        preferredFullName = "[Prefix] [Given-Names] [Surname] [Suffix]";
+    }  
+
+    // wrap preferredFullName into anchor with orcid-link:
+    if(contributor.querySelector(".contrib-id") !== null) {
+        contribIdLink.classList.add("contributor-link");
+        contribIdLink.target = "_blank";
+        contribIdLink.href = contributor.querySelector(".contrib-id").textContent;
+        contribIdLink.innerHTML = preferredFullName
+        name.append(contribIdLink);
+    } 
+    // display full name only:
+    else { 
+        name.innerHTML = preferredFullName;
+    }
+    contributorsCard.append(name);
 
      // parse and reorder affiliation information: 
     if(contributor.querySelector(".institution") !== null) {
@@ -1125,9 +1176,10 @@ function createContributorsCard(contributor) {
         contributorsCard.append(institution);
     };
 
-     // parse and append email information:
+    // parse and append email information:
+    let email;
     if(contributor.querySelector(".email") !== null) {
-        email.innerHTML = contributor.querySelector(".email").textContent;
+        email = contributor.querySelector(".email");
         contributorsCard.append(email);
     }
     return(contributorsCard);
@@ -1188,6 +1240,11 @@ function createArticleMetaSection(content) {
             articleMetaSection.appendChild(articleMeta.querySelector(".copyright-statement:not([content-type='print'])"));
         }
         if(articleMeta.querySelector(".license:not([license-type='print'])")) {
+            if(articleMeta.querySelector(".license-ref") !== null) {
+                let licenseRef = articleMeta.querySelector(".license-ref");
+                licenseRef.href = licenseRef.textContent;
+                licenseRef.target = "_blank";
+            }
             articleMetaSection.appendChild(articleMeta.querySelector(".license:not([license-type='print'])"));
         }
         if(articleMeta.querySelectorAll(".license-p").length > 0) {
