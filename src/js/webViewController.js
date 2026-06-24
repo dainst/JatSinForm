@@ -2,7 +2,7 @@
  * html view script libraries 
  * @type {Constants}
 ---------------------------------------*/
-const domain = "http://localhost:3000/jatsinform/"
+const domain = appBaseUrl;
 const htmlViewScriptLibrary = {
     "highlightJs": {
         "type": "text/javascript",
