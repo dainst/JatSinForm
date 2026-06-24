@@ -2,7 +2,7 @@
  * html view script libraries 
  * @type {Constants}
 ---------------------------------------*/
-const domain = appBaseUrl;
+const domain = (appBaseUrl !== undefined) ? appBaseUrl : window.location.hostname;
 const htmlViewScriptLibrary = {
     "highlightJs": {
         "type": "text/javascript",
