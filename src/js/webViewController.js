@@ -2,7 +2,7 @@
  * html view script libraries 
  * @type {Constants}
 ---------------------------------------*/
-const domain = (appBaseUrl !== undefined) ? appBaseUrl : window.location.hostname;
+const domain = (appBaseUrl !== undefined) ? appBaseUrl : window.location.origin + "/jatsinform-view/"
 const htmlViewScriptLibrary = {
     "highlightJs": {
         "type": "text/javascript",
