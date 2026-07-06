@@ -27,7 +27,12 @@ const htmlViewScriptLibrary = {
     "fontAwesome": {
         "type": "text/css",
         "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css",
-        "src-local": domain + "lib/fontAwesome/fontAwesome_6.0.0_all.css"
+        "src-local": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    },
+    "NotoSans": {
+        "type": "text/css",
+        "src-remote": "https://fonts.bunny.net/css?family=noto-sans:300",
+        "src-local": "https://fonts.bunny.net/css?family=noto-sans:300"
     }
 } 
 
@@ -52,6 +57,7 @@ const htmlViewScriptLibrary = {
             addScriptToDocumentHead("leaflet");
             addScriptToDocumentHead("leafletCss");
             addScriptToDocumentHead("fontAwesome");
+            addScriptToDocumentHead("NotoSans");
         }
      
         // remove fallback-styles:
