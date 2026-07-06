@@ -144,7 +144,7 @@
             "obligatory": false
         },
         "title": {
-            "tagName": "div",
+            "tagName": "h3",
             "className": "title",
             "obligatory": false
         },
