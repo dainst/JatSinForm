@@ -2,63 +2,6 @@
  * Application script constants:
  * @type {Constants}
 ---------------------------------------*/
-const scriptLibrary = {
-    "generatePagedView": {
-        "type": "text/javascript",
-        "src-remote": "src/js/generatePagedView.js",
-        "src-local": "src/js/generatePagedView.js"
-    },
-    "generateWebView": {
-        "type": "text/javascript",
-        "src-remote": "src/js/generateWebView.js",
-        "src-local": "src/js/generateWebView.js"
-    },
-    "webViewController": {
-        "type": "text/javascript",
-        "src-remote": "src/js/webViewController.js",
-        "src-local": "src/js/webViewController.js"
-    },
-    "figConstellationSetup": {
-        "type": "text/javascript",
-        "src-remote": "src/js/setupFigConstellations.js",
-        "src-local": "src/js/setupFigConstellations.js"
-    },
-    "pagedJs": {
-        "type": "text/javascript",
-        "src-remote": "https://unpkg.com/pagedjs/dist/paged.polyfill.js",
-        "src-local": "lib/pagedJs/pagedJs_0.4.3.js"
-    },
-    "highlightJs": {
-        "type": "text/javascript",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js",
-        "src-local": "lib/highlightJs/highlightJs_11.10.0.js",
-    },
-    "highlightJsCss": {
-        "type": "text/css",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/default.min.css",
-        "src-local": "lib/highlightJs/highlightJsCss_11.10.0.css",
-    },
-   "leaflet": {
-        "type": "text/javascript",
-        "src-remote": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
-        "src-local": "lib/leaflet/leaflet_1.9.4.js" 
-    },
-    "leafletCss": {
-        "type": "text/css",
-        "src-remote": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-        "src-local": "lib/leaflet/leafletCss_1.9.4.css"
-    },
-    "fontAwesome": {
-        "type": "text/css",
-        "src-remote": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css",
-        "src-local": "lib/fontAwesome/fontAwesome_6.0.0_all.css"
-    },
-    "interactJs": {
-        "type": "text/javascript",
-        "src-remote": "https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js",
-        "src-local": "https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"
-    }
-} 
 const defaultJournal = "AA";
 const urlRegex = /doi|handle|urn|ark:|orcid|ror|dainst|idai.world|wikipedia/g;
 const specificUseRegex = "zenon|extrafeatures|supplements";
@@ -69,18 +12,6 @@ progressBar.id = "progress-bar";
 const errorConsole = document.createElement("div");
 errorConsole.innerHTML = "<h3>Critical error found:</h3>";
 errorConsole.id = "error";
-
-const faviconLink = document.createElement("link");
-faviconLink.type = 'image/png';
-faviconLink.rel = 'icon';
-faviconLink.href = "/src/css/assets/graphics/greif.png";
-
-const systemNotice = {
-    "html": "This HTML format was created with " + 
-        "<a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank' rel='noopener noreferrer'> JatSinForm</a>.",
-    "pdf": "This PDF was created with " + 
-        "<a id='jatsinform-link' href='https://github.com/dainst/JatSinForm' target='_blank'> JatSinForm</a>."
- }
 
 /** -------------------
  * -------------------
@@ -166,6 +97,7 @@ document.addEventListener("readystatechange", (event) => {
             addScriptToDocumentHead("leaflet");
             addScriptToDocumentHead("leafletCss");
             addScriptToDocumentHead("fontAwesome");
+            addScriptToDocumentHead("NotoSans");
 
             // add render scripts:
             addScriptToDocumentHead("generateWebView");
@@ -885,7 +817,7 @@ function defineHeadlinePropertiesByHierarchyLevel(level) {
             break;
         case (level === 3):
             headlineProperties.elementName = "h3";
-            headlineProperties.className = "subsection-title";
+            headlineProperties.className = "section-title";
             break;
         case (level > 3):
             headlineProperties.elementName = "h4";
@@ -1096,7 +1028,8 @@ async function downloadHTMLDocument() {
     const documentRoot = document.querySelector(':root');
     const documentId = getDocumentStateProperty('documentId');
     const lang = localStorage.getItem('documentLang');
-    const htmlDoc = document.implementation.createHTMLDocument('documentId');
+    const title = document.title;;
+    const htmlDoc = document.implementation.createHTMLDocument(title);
     htmlDoc.documentElement.lang = lang;
 
     // get styles:
@@ -1118,12 +1051,12 @@ async function downloadHTMLDocument() {
             errorConsole.innerHTML = "<span>&#9432;</span> There was a problem loading external scripts from the internet." + 
             " The document is entirely readable but might have reduced functionalities. Please visit the source address by following the DOI link!";
             window.document.body.prepend(errorConsole);
-            if (document.querySelector('link') !== null) {
-              document.querySelector('link').remove();
-            }
-            const pageHeader = document.querySelector('#page-header');
-            const tocList = document.querySelector('#toc-list');
-            if (pageHeader && tocList) pageHeader.appendChild(tocList);
+            if (document.querySelector("link") !== null) {document.querySelector("link").remove();}
+            const mainWrapper = document.querySelector("#main-wrapper");
+            const pageHeader = document.querySelector("#cover-area");
+            const tocList = document.querySelector("#toc-list");
+            if (pageHeader !== null && tocList !== null) pageHeader.appendChild(tocList);
+            if (mainWrapper !== null && pageHeader !== null) mainWrapper.prepend(pageHeader);
           }
         }
       });
@@ -1165,7 +1098,7 @@ async function downloadHTMLDocument() {
     htmlDoc.body.classList.add('fade-in');
   
     // kick off the download
-    const filename = (documentId || 'document') + '.html';
+    const filename = (title || 'document') + '.html';
     download("<!doctype html>\n" + htmlDoc.documentElement.outerHTML, 'text/html', filename);
 }
 
@@ -1192,6 +1125,83 @@ function download(content, type, filename) {
 /* ----------------
 Download Helpers
 ------------------*/
+
+/**
+ * Converts all <img> elements inside a container to WebP base64 data URLs.
+ * Processes images concurrently with limited parallelism to avoid blocking the UI.
+ * @param {HTMLElement} container parent element containing images
+ * @param {Object} [options] options object
+ * @param {string} [options.selector='img'] CSS selector to find images
+ * @param {number} [options.quality=0.8] quality factor for WebP encoding
+ * @param {number} [options.concurrency=4] maximum number of images to process in parallel
+ * @param {Function} [options.onProgress] callback(doneCount, totalCount) after each image
+ * @returns {Promise<number>} resolves to number of images processed
+ */
+
+async function convertAllImagesToWebPBase64(container, {
+    selector = 'img',
+    quality = 0.8,
+    concurrency = 4,
+    onProgress = null
+    } = {}) {
+    const imgs = Array.from(container.querySelectorAll(selector));
+    let done = 0;
+  
+    const queue = imgs.map(img => async () => {
+      await convertImgElToDataURL(img, "image/webp", quality);
+      done++;
+      if (onProgress) onProgress(done, imgs.length);
+    });
+    const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
+      while (queue.length) {
+        const task = queue.shift();
+        if (task) await task();
+      }
+    });
+  
+    await Promise.all(workers);
+    return imgs.length;
+}
+
+/**
+ * Converts a single <img> element to a WebP base64 data URL and replaces its src.
+ * Waits until the image is loaded before processing.
+ * @param {HTMLImageElement} imgEl the image to convert
+ * @param {number} [quality=0.8] quality factor between 0 and 1 for WebP encoding
+ * @returns {Promise<boolean>} resolves to true if converted, false if skipped or failed
+ */
+
+async function convertImgElToDataURL(imgEl, type = "image/webp", quality = 0.8) {
+    try {
+        // Skip if already a WebP data URL
+        const src = imgEl.getAttribute('src') || '';
+        if (src.startsWith('data:image/webp;base64,')) return false;
+
+        // If the image is cross-origin without proper CORS, drawing will taint the canvas.
+        if (!imgEl.complete || imgEl.naturalWidth === 0) {
+        await new Promise((res, rej) => {
+            imgEl.addEventListener('load', res, { once: true });
+            imgEl.addEventListener('error', () => rej(new Error('image load error')), { once: true });
+        });
+        }
+
+        const canvas = canvasFromImage(imgEl);
+        const dataUrl = await canvasToDataURLAsync(canvas, type, quality);
+        imgEl.src = dataUrl;
+
+        // (Optional) store intrinsic size on parent <figure>
+        const fig = imgEl.closest('figure');
+        if (fig) {
+        fig.dataset.imgWidth = imgEl.naturalWidth;
+        fig.dataset.imgHeight = imgEl.naturalHeight;
+        }
+        return true;
+    } catch (err) {
+        // Likely causes: cross-origin tainting, unsupported type, SVG filters, etc.
+        console.warn('Conversion skipped for one image:', err);
+        return false;
+    }
+}
 
 /**
  * Create a canvas and draw the given image on it.
@@ -1232,86 +1242,6 @@ async function canvasToDataURLAsync(canvas, type = 'image/webp', quality = 0.8) 
         fr.readAsDataURL(blob);
     }));
 }
-  
-/**
- * Converts a single <img> element to a WebP base64 data URL and replaces its src.
- * Waits until the image is loaded before processing.
- * @param {HTMLImageElement} imgEl the image to convert
- * @param {number} [quality=0.8] quality factor between 0 and 1 for WebP encoding
- * @returns {Promise<boolean>} resolves to true if converted, false if skipped or failed
- */
-
-async function convertImgElToWebPDataURL(imgEl, type = "image/webp", quality = 0.8) {
-    try {
-        // Skip if already a WebP data URL
-        const src = imgEl.getAttribute('src') || '';
-        if (src.startsWith('data:image/webp;base64,')) return false;
-
-        // If the image is cross-origin without proper CORS, drawing will taint the canvas.
-        if (!imgEl.complete || imgEl.naturalWidth === 0) {
-        await new Promise((res, rej) => {
-            imgEl.addEventListener('load', res, { once: true });
-            imgEl.addEventListener('error', () => rej(new Error('image load error')), { once: true });
-        });
-        }
-
-        const canvas = canvasFromImage(imgEl);
-        const dataUrl = await canvasToDataURLAsync(canvas, type, quality);
-        imgEl.src = dataUrl;
-
-        // (Optional) store intrinsic size on parent <figure>
-        const fig = imgEl.closest('figure');
-        if (fig) {
-        fig.dataset.imgWidth = imgEl.naturalWidth;
-        fig.dataset.imgHeight = imgEl.naturalHeight;
-        }
-        return true;
-    } catch (err) {
-        // Likely causes: cross-origin tainting, unsupported type, SVG filters, etc.
-        console.warn('Conversion skipped for one image:', err);
-        return false;
-    }
-}
-  
-/**
- * Converts all <img> elements inside a container to WebP base64 data URLs.
- * Processes images concurrently with limited parallelism to avoid blocking the UI.
- * @param {HTMLElement} container parent element containing images
- * @param {Object} [options] options object
- * @param {string} [options.selector='img'] CSS selector to find images
- * @param {number} [options.quality=0.8] quality factor for WebP encoding
- * @param {number} [options.concurrency=4] maximum number of images to process in parallel
- * @param {Function} [options.onProgress] callback(doneCount, totalCount) after each image
- * @returns {Promise<number>} resolves to number of images processed
- */
-
-async function convertAllImagesToWebPBase64(container, {
-    selector = 'img',
-    quality = 0.8,
-    concurrency = 4,
-    onProgress = null
-    } = {}) {
-    const imgs = Array.from(container.querySelectorAll(selector));
-    let done = 0;
-  
-    const queue = imgs.map(img => async () => {
-      await convertImgElToWebPDataURL(img, quality);
-      done++;
-      if (onProgress) onProgress(done, imgs.length);
-    });
-  
-    // Simple semaphore
-    const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
-      while (queue.length) {
-        const task = queue.shift();
-        if (task) await task();
-      }
-    });
-  
-    await Promise.all(workers);
-    return imgs.length;
-}
-  
 
 /* -------------------------------
 Application related functions:
@@ -1342,7 +1272,7 @@ function requestXml() {
     let xmlPath = false;
 
     // checkout xml-path
-    if (document.querySelector('meta[name="--xml-file"]') === null) {
+    if(document.querySelector('meta[name="--xml-file"]') === null) {
         errorConsole.innerHTML = "No xml-file given! " + 
         "Checkout index.html: meta[name=\"--xml-file\"]";
         document.body.append(errorConsole);
@@ -1859,4 +1789,3 @@ function mapJATSFrontToScholarlyArticle(front, json = {}) {
   
     return json;
 }
-  
