@@ -5,7 +5,7 @@
     --panel-background: white;
     --panel-text-color: rgb(85, 83, 83);
     --panel-text-font-size: 1rem;
-    --primary-font-family: "Noto Sans Light", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;  
+    --primary-font-family: "Noto Sans", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;  
 }
 
 * {
@@ -148,7 +148,7 @@ a#back-to-top {
 }
 
 a#back-to-top:before {
-    content: "\2191";
+    content: "↥";
 }
 
 nav.panel-navigation {
@@ -654,12 +654,12 @@ a.index-ref {
 
 a.index-ref::before {
     font-size: 0.9rem;
-    content: "\260D";
+    content: "↶";
     padding-right: 0.5vw;
 }
 
 a.index-ref > span {
-    content: "\260D";
+    content: "↶";
     padding-right: 0.5vw;
     color: var(--journal-color-high-contrast);
 }
@@ -985,7 +985,7 @@ a.zenon-link {
 }
 
 a.zenon-link::before {
-    content: "\260D";
+    content: "↸";
     padding-right: 0.5vw;
 }
 
@@ -1627,18 +1627,18 @@ summary::-webkit-details-marker {
 
 details summary::before { 
     color: #100e0e;
-    content: "\2B9E";
+    content: "⮞";
     padding-right: 0.5vw;;
 }
 
 details[open] summary::before {
     color: #100e0e;
-    content:"\2B9F ";
+    content:"⮞";
     padding-right:0.5vw;
 }
 
 .internal-index-anchor::before {
-    content: "\2B9E";
+    content: "⮞";
     padding-right:0.5vw;
 }
 
@@ -1718,25 +1718,6 @@ details[open] summary::before {
     100% { opacity: 1; }
 }
 
-
-/* FONTS 
------------------------*/
-@font-face {
-    font-family: "Noto Serif Light";
-    src: 
-    url(assets/fonts/NotoSerif-Light.woff2) format("woff2"),
-    url(assets/fonts/NotoSerif-Light.woff) format("woff");
-    font-weight: 300;
-    font-style: normal; 
-}
-
-@font-face {
-    font-family: "Noto Sans Light";
-    src: url(assets/fonts/NotoSans-Light.woff2) format("woff2"),
-    	url(assets/fonts/NotoSans-Light.woff) format("woff");
-    font-weight: 300;
-    font-style: normal; 
-}
 
 /* MEDIA QUERIES
 ------------------*/
