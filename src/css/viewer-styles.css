@@ -151,6 +151,20 @@ a#back-to-top:before {
     content: "↥";
 }
 
+#search-log {
+    position:fixed;
+    z-index:1000;
+    right:1rem;bottom:1rem;padding:.5rem 1rem;
+    background:#0008;color:#fff;border-radius:.5rem;font:14px/1.4 system-ui;
+    font-size: 0.9rem;
+    display:none;
+}
+
+#search-log:before {
+    content: "Filter panel by: ";
+    font-style: italic;
+}
+
 nav.panel-navigation {
     display: flex;
     flex-direction: column;
@@ -478,7 +492,7 @@ p.catalog-number {
 }
 
 .paragraph-counter {
-    font-size: 1rem;
+    font-size: 0.85rem;
     margin-right: 2vw;
     font-style:normal;
     cursor: help;
@@ -771,7 +785,7 @@ td > p {
 }
 
 #abstract-section {
-    margin: 4% 0 0 0;
+    margin: 1vh 0 0 0;
 }
 
 .abstract-details {
@@ -802,10 +816,13 @@ td > p {
     font-size: 0.9rem !important;
 }
 
+#project-meta-section {
+    margin-top: 2vh;
+}
+
 #project-meta-section > p {
     color:#e7e7e7;
-    margin-top:2vh;
-    font-size: 0.9rem;
+    font-size: 0.75rem;
 }
 
 .project-meta-title-span {
@@ -995,6 +1012,15 @@ a.zenon-link::before {
     display:block;
 }
 
+p.alt-text {
+    display:none;
+    font-style: italic;
+}
+
+p.alt-text:before {
+   content: "Alt-Text: ";
+}
+
 #figures {
     font-family: var(--primary-font-family);
     margin-right: 6%;
@@ -1021,7 +1047,6 @@ figure.highlight {
 
 figure > img {
     width: 100%;
-    order: 1;
     border-radius:10px;
     box-shadow: 3px 2px 11px #dedede;
     padding: 0.25%;
@@ -1030,7 +1055,6 @@ figure > img {
 
 figure > figCaption {
     margin: 2% 1%;
-    order: 2;
     font-size: 0.9rem !important;
 }
 
@@ -1101,6 +1125,7 @@ figcaption > .license-url::after {
     content: "]";
 }
 
+/*
 figure > a.internal-index-anchor {
     order: 3 !important;
 }
@@ -1108,6 +1133,7 @@ figure > a.internal-index-anchor {
 figure > .internal-index-box {
     order: 4;
 }
+    */
 
 #fullpage {
     display: none;
@@ -1140,6 +1166,7 @@ img:not(.iDAI-icon,.logo-img) {
     padding: 0;
     background: none;
 }
+
 
 /* gazetteer locations 
 ------------------------*/
@@ -1717,7 +1744,6 @@ details[open] summary::before {
     0% { opacity: 0; }
     100% { opacity: 1; }
 }
-
 
 /* MEDIA QUERIES
 ------------------*/
