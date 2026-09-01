@@ -12,7 +12,7 @@
       <script>
          // all views related:
          const base64ImgConversion = true;
-         const imgQuality = 0.75; // 1 = without compression
+         const imgQuality = 0.5; // 1 = without compression
          const checkUrlPersistence = false;
 
          // cover design related:
@@ -22,20 +22,17 @@
          const backgroundBlendColor = "#393c47";
  
          // pdf view related:
-         const devMode = false;
          const pagesFlexDirection = "row"; // "row" or "column"
          const firstTextPageId = "page-2";
-         const autoAvoidOrphans = true;
-         const noOrphanArea = 120;     // e.g. 120: height in px from page bottom
          const maxAbstractLength = 2500;
-         const maxFootnoteLength = 2000;
+         const maxFootnoteLength = 1000;
          const maxCaptionLength = 1000;
          const createToC = false;
 
          // pdf figure layout related:
-         const rangeNextFigRefs = 4;
+         const rangeNextFigRefs = 2;
          const keepFiguresWithinSection = true;
-         const allFiguresOnTop = false;
+         const allFiguresOnTop = true;
          const setAllFiguresTiny = false;
          const setFiguresAtEnd = false;
          const setNoFigures = false;
@@ -49,6 +46,14 @@
                "it": "Parole chiave",
                "sp": "Palabras clave",
                "es": "Palabras clave"
+            },
+            "abstract": {
+               "de": "Zusammenfassung",
+               "en": "Abstract",
+               "fr": "Résumé",
+               "it": "Sommario",
+               "sp": "Resumen",
+               "es": "Resumen"
             },
             "contents": {
                "de": "Inhalt",
@@ -92,7 +97,7 @@
             },
             "sourceOfIllustrations": {
                "de": "Abbildungsnachweise",
-               "en": "Illustrations credits",
+               "en": "Illustrations Credits",
                "fr": "Crédits des illustrations",
                "it": "Crediti delle illustrazioni",
                "sp": "Créditos de las ilustraciones",
@@ -108,7 +113,7 @@
             },
             "cooperations": {
                "de": "Kooperationspartner",
-               "en": "Cooperation partners",
+               "en": "Cooperation Partners",
                "fr": "Partenaires de coopération",
                "it": "Partner di cooperazione",
                "sp": "Socios de cooperación",
