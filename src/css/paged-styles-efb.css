@@ -13,13 +13,13 @@
     --headline-font: "Geometria Light";
     --short-text-font: "Geometria Bold";
     --caption-font: "Geometria Light";
-    --p-font-size: 12pt;
+    --p-font-size: 11pt;
     --line-height-para: 1.25; /* 15 pt */
-    --footnote-font-size: 12pt; /* endnotes */
+    --footnote-font-size: 11pt; /* endnotes */
     --caption-font-size: 10pt;
     --line-height-cap: 1.27; /* 14pt */
-    --li-font-size: 12pt; 
-    --meta-element-font-size: 12pt; 
+    --li-font-size: 11pt; 
+    --meta-element-font-size: 11pt; 
     --imgMarginBottom: 2.5mm;
     --floatFigureMarginToText: 7.5mm;
     --floatFigureMarginBottom: 5mm;
@@ -30,7 +30,6 @@
     --pagedjs-crop-shadow: white;
     --pagedjs-crop-stroke: 1px;
     --pagedjs-padding-top: 5mm;
-    --pagedjs-area-width: 130mm;
 }
 
 /* page styles
@@ -336,7 +335,7 @@ body {
 .abstract-title {
     font-family: var(--short-text-font);
     color: var(--journal-color);
-    font-size: 11pt;
+    font-size: 12pt;
     margin: 0;
     text-align: left;
     hyphens: none;
@@ -360,7 +359,7 @@ body {
     font-family: var(--para-font);
     font-weight: 400;
     color: black;
-    font-size: 11pt;
+    font-size: var(--p-font-size);
     display: block;
     text-align: justify;
     line-height: 1.35;
@@ -378,7 +377,7 @@ body {
     font-family: var(--para-font);
     color: black;
     font-weight: 400;
-    font-size: 11pt;
+    font-size: var(--p-font-size);
     display:block;
     text-align: justify;
     line-height: 1.35;
@@ -395,7 +394,7 @@ body {
     font-family: var(--para-font);
     color: black;
     font-weight: 400;
-    font-size: 11pt;
+    font-size: var(--p-font-size);
     display:block;
     line-height: 1.35;
     margin-bottom: 5mm;
@@ -568,7 +567,7 @@ a {
 }
 
 .footnote > p > a {
-    word-break: break-all !important;
+    word-break: break-all;
 } 
 
 a:hover {
@@ -588,7 +587,7 @@ a.fig-ref {
 }
 
 a.bib-ref {
-    word-break: break-all;
+    word-break: normal !important;
 }
 
 
@@ -653,6 +652,17 @@ table td:first-child { border-left: none; }
     margin-top:0;
 }
 
+/* meta-sections
+-------------------------------*/
+.meta-section {
+    width: 100%;
+    column-count: 1;
+    column-fill: auto;
+    column-gap: 8mm;
+    break-after: page;
+    break-before: page;
+}
+
 /* endnotes-section (e.g. for e-fb)
 ----------------------------------*/
 #endnotes-section {
@@ -702,9 +712,9 @@ a.backLinkToFnRef:before {
 /* reference List
 ---------------------*/
 #reference-list {
-    break-after: page;
-    break-before: page;
     text-align: left;
+    padding:0;
+    margin:0;
 }
 
 #reference-list .main-section-title {
@@ -753,6 +763,10 @@ a.backLinkToFnRef:before {
     text-decoration: none;
 }
 
+.mixed-citation > .ext-ref {
+    word-break: break-all;
+}
+
 /* source of Illustrations:
 --------------------------*/
 #source-of-illustrations {
@@ -775,6 +789,7 @@ a.backLinkToFnRef:before {
     margin: 2.5mm 0;
     display:flex;
 }
+
 
 .credits > .img-label {
     font-family: var(--para-font-bold);
@@ -806,16 +821,9 @@ a.backLinkToFnRef:before {
     content: "License: ";
 }
 
-/* meta-section (appendices):
+/* trans-abstract
 ---------------------------*/
-.meta-section {
-    width: 100%;
-    column-count: 1;
-    column-fill: auto;
-    column-gap: 8mm;
-}
 
-/* trans-abstract */
 .trans-abstract > .abstract-author, .abstract-subtitle, .abstract-text {
     font-size: var(--meta-element-font-size); 
     font-family: var(--para-font);
@@ -839,10 +847,11 @@ a.backLinkToFnRef:before {
     text-align: justify;
 }
 
-/* authors data */
+/* authors data (Contact)
+---------------------------*/
 
 .contributors-card {
-    margin: 2.5mm 0;
+    margin: 3mm 0;
 }
 
 .contributors-card > p {
@@ -1219,6 +1228,10 @@ figure > .license-p {
 }
 
 figure > .license-url {
+    display:none;
+}
+
+p.alt-text {
     display:none;
 }
 
