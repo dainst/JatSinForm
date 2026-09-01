@@ -17,6 +17,11 @@
             "refAttribute": "xlink:href",
             "obligatory": false
         },
+        "alt-text": {
+            "tagName": "p",
+            "className": "alt-text",
+            "obligatory": false
+        },
         "caption": {
             "tagName": "figCaption",
             "className": false,
