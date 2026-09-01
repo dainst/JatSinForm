@@ -59,16 +59,22 @@ const scriptLibrary = {
         "type": "text/css",
         "src-remote": "https://fonts.bunny.net/css?family=noto-sans:300",
         "src-local": "https://fonts.bunny.net/css?family=noto-sans:300"
-    }
+    }  
 } 
 // app base url:
 const appBaseUrl = "http://localhost:3000/";
+
+// single file script source
+const singleFileScriptsUrl = "https:/publications.test.dainst.org/jatsinform-view/";
 
 // path to xml directory in base-domain
 const xmlFolder = "xml-documents";
 
 // load editor-xml from localStorage
 const xmlFromEditor = true;
+
+// devMode (browser logs)
+const devMode = false;
 
 // favicon:
 const faviconLink = document.createElement("link");
@@ -78,7 +84,7 @@ faviconLink.href = "src/css/assets/graphics/greif.png";
 
 // systemnotice (jatsinform)
 const systemNotice = {
-    "html": "This HTML format was created with <em>JatSinForm</em>.",
-    "pdf": "This PDF was created with </em>JatSinForm</em."
+    "html": "This HTML document was created with <em>JatsInForm</em>.",
+    "pdf": "This PDF was created with </em>JatsInForm</em."
 }
 

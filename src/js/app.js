@@ -672,7 +672,10 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap) {
                     if(attributeKey === "translate") {attributeValue = "no";}
                
                     // set attribute to new element:
-                    newElement.setAttribute(attributeKey, attributeValue);
+                    if(attributeKey !== null && attributeValue !== null) {
+                        newElement.setAttribute(attributeKey, attributeValue);
+                    }
+    
                 }
     
                 if(selector === "xref[ref-type='fig']"
@@ -1070,9 +1073,10 @@ async function downloadHTMLDocument() {
       fallbackStyles.textContent = localStorage.getItem('viewer-fallback-styles');
     }
   
-    // set script and css-links
-    const viewControllerPath = appBaseUrl + 'jatsinform/src/js/webViewController.js';
-    const viewerCssPath = appBaseUrl + 'jatsinform/src/css/viewer-styles.css';
+    // set app-config.js, web-view-controller and css-links
+    const appConfigPath = singleFileScriptsUrl + 'configs/app-config.js';
+    const viewControllerPath = singleFileScriptsUrl + 'src/js/webViewController.js';
+    const viewerCssPath = singleFileScriptsUrl + 'src/css/viewer-styles.css';
   
     // get json-LD
     let jsonLD = localStorage.getItem('json-LD');
@@ -1083,8 +1087,9 @@ async function downloadHTMLDocument() {
       "  <title>" + jsonLD.headline + "</title>" +
       "  <meta charset='UTF-8'>" +
       '  <script>' + fallbackScript + '</script>' +
-      "  <script type='text/javascript' onerror='this.onerror=null;fallback(true);' src='" + viewControllerPath + "'></script>" +
-      "  <link type='text/css' rel='stylesheet' onerror='this.onerror=null;fallback(false)' href='" + viewerCssPath + "'>" +
+      "  <script type='text/javascript' onerror='this.onerror=null;fallback(true);' src='" + appConfigPath + "'></script>" +
+      "  <script type='text/javascript' src='" + viewControllerPath + "'></script>" +
+      "  <link type='text/css' rel='stylesheet' href='" + viewerCssPath + "'>" +
       "  <script type='application/ld+json'>" + JSON.stringify(jsonLD) + '</script>';
     if (fallbackStyles) htmlDoc.head.appendChild(fallbackStyles);
   
