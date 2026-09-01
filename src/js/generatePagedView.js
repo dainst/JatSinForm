@@ -76,7 +76,7 @@ function controlPagedJsHandler() {
          *  (renderNode is the cloned node that is added to the DOM)
          */
         renderNode(sourceNode, renderNode, Layout) {
-
+      
             if (sourceNode && sourceNode.nodeType == Node.ELEMENT_NODE) {
                 // get textContentMap and parsedContent:
                 let textContentMap = JSON.parse(localStorage.getItem("text-content-map"));
@@ -86,7 +86,7 @@ function controlPagedJsHandler() {
                 // handle layout of text-content-elements:
                 if(textContentMap[sourceNode.id] !== undefined && !textContentMap[sourceNode.id]["isSet"]) {
                     // define nodeParams (e.g. position on page, figure references):
-                    let nodeParams = defineSourceNodeParameter(sourceNode, renderNode, parsedContent);
+                    let nodeParams = defineSourceNodeParameter(sourceNode, renderNode, parsedContent, Layout);
 
                     // detect splitted nodes:
                     let isSplitNode = (sourceNode.getAttribute("is-split-node") !== null) ? true : false;
@@ -158,6 +158,9 @@ function controlPagedJsHandler() {
 
             // classify position of elements on page:
             classifyElementPositionOnPage(pageElement,".text-content,figure");
+            
+            // push title orphans to next page:
+            if(!devMode) pushTitleOrphansToNextPage(pageElement, page, breakToken);
 
             // push figure element on top of page:
             pushFigureElementOnTopOfPage(pageElement, 
@@ -175,16 +178,15 @@ function controlPagedJsHandler() {
             for (let i = 0; i < footnoteSpans.length; i++) {
                 let isFootnote = footnoteSpans[i].getAttribute("isFootnote");
                 if(isFootnote) { 
-                    // footnoteSpans[i].innerHTML = footnoteSpans[i].innerText;
                     footnoteSpans[i].innerHTML = footnoteSpans[i].getAttribute("footnote-html");
                 } 
             }
             // check urls:
             checkQualityOfUrls();
 
-            // test calculations of node distances (see console)
+            // log calculations of node distances (see console)
             if(devMode) {
-                testCalculationsOfNodeDistances(pageElement);                
+                logCalculationsOfNodeDistances(pageElement);                
             }
         }
 
@@ -203,9 +205,10 @@ function controlPagedJsHandler() {
             document.querySelectorAll("FIGURE").forEach(element => {
                 if(element.firstElementChild !== null) {
                     let img = element.firstElementChild;
-                    // compress images based on imgQuality (see index.html)
-                    convertImgElToWebPDataURL(img, "image/jpeg", imgQuality);
-                    
+                    // compress images based on imgQuality (see index.html):
+                    if(img != null && !/logo-img/.test(img.className)) {
+                        convertImgElToDataURL(img, "image/jpeg", imgQuality);
+                    }
                     // add mouseover event class to typeset figures:
                     img.addEventListener("mouseover", () => {
                         img.classList.toggle('active');
@@ -250,13 +253,29 @@ function createPagedArticle(content) {
     let journalId = content.querySelector(".journal-id").textContent;
 
     // define short title information for margin-sections:
-    let articleTitle = content.querySelector(".article-title").textContent;
-    let journalTitle = content.querySelector(".journal-title").textContent;
-    let volume = content.querySelector(".volume").textContent;
+    let articleTitle = "[No-article-title]";
+    let journalTitle = "[No-journal-title]";
+    let volume = "[No-journal-volume]";
+    let citeAs = "[No-citation-guideline]";
+    if(content.querySelector(".article-title") !== null) {
+        articleTitle = content.querySelector(".article-title").textContent;
+    }
+    if(content.querySelector(".journal-title") !== null) {
+        journalTitle = content.querySelector(".journal-title").textContent;
+    }
+    if(content.querySelector(".volume") !== null) {
+        volume = content.querySelector(".volume").textContent;
+    }
+    if(content.querySelector(".citation-guideline > .meta-value") !== null) {
+        citeAs = content.querySelector(".citation-guideline > .meta-value").textContent;
+    }
+  
+    // add values to document root:
     let documentRoot = document.querySelector(':root');
     documentRoot.style.setProperty('--article-title', "'" + articleTitle + "'");
     documentRoot.style.setProperty('--journal-title', "'" + journalTitle + "'");
     documentRoot.style.setProperty('--volume', "'" + volume + "'");
+    documentRoot.style.setProperty('--citation-guideline', "'" + citeAs + "'");
     let issueFrontmatterPage = createIssueFrontmatterPage(content);
 
     // create journal logo:
@@ -286,9 +305,11 @@ function createPagedArticle(content) {
         abstractBox.innerHTML = "[NO ABSTRACTS]";
     };
     let projectMetaSection = createProjectMetaSection(content);
-
     let referenceList = createReferenceList(content);
-    let endnotesSection = createEndnotesSection(content);
+
+    let endnotesSection;
+    if(journalId === "e-DAI-F") {endnotesSection = createEndnotesSection(content);}
+
     let contributorsDetails = createContributorsDetails(content, true);
     let articleMetaSection = createArticleMetaSection(content);
     let imprintSection = createImprintSection(content);
@@ -330,18 +351,15 @@ function createPagedArticle(content) {
     meta.classList.add("meta-section");
 
     let transAbstracts = abstractCollection.querySelectorAll(".trans-abstract");
-    if(transAbstracts !== null) {transAbstracts.forEach(transAbstract => {
-        meta.appendChild(transAbstract);});
+    if(transAbstracts !== null) {
+        transAbstracts.forEach(transAbstract => {
+            meta.appendChild(transAbstract);
+        });
     }
     meta.appendChild(contributorsDetails);
     meta.appendChild(articleMetaSection);
     meta.appendChild(imprintSection);
     if(createToC) {meta.appendChild(tocList);}
-
-    if(journalId === "e-DAI-F") {
-        referenceList.classList.remove("meta-section");
-        sourceOfIllustrations.classList.remove("meta-section");
-    }
 
     // append back-part / appendixes:
     if(journalId === "e-DAI-F" && endnotesSection !== null) {
@@ -426,7 +444,7 @@ function createTitleElements(content) {
     let subtitle = content.querySelector(".article-subtitle");
 
     let titleElement = document.createElement("h1");
-    titleElement.classList.add("title-header-title", "text-content");
+    titleElement.classList.add("title-header-title");
     titleElement.innerHTML = (title !== null) ? title.textContent : "[Kein Titel]";
 
     // append to titleElements container
@@ -435,7 +453,7 @@ function createTitleElements(content) {
     let subtitleElement;
     if(subtitle !== null) {
         subtitleElement = document.createElement("h2");
-        subtitleElement.classList.add("title-header-subtitle", "text-content");
+        subtitleElement.classList.add("title-header-subtitle");
         subtitleElement.innerHTML = subtitle.textContent;
         // append to titleElements container
         titleElements.append(subtitleElement)
@@ -446,7 +464,7 @@ function createTitleElements(content) {
 function createAuthorsElement(content) {
     
     let authorsElement = document.createElement("div");
-    authorsElement.classList.add("title-header-authors", "text-content");
+    authorsElement.classList.add("title-header-authors");
     
     // get article contributors (e.g. authors):
     let authors = [];
@@ -560,10 +578,11 @@ function createAbstractBox(abstract, kwdGroup) {
 
         // add generic abstract-title if missing:
         let abstractTitle;
+        let abstractLang = abstract.getAttribute("lang");
         if(abstract.querySelector(".title") == null) {
             abstractTitle = document.createElement("h3");
             abstractTitle.classList.add("title");
-            abstractTitle.textContent = "Abstract (" + abstract.getAttribute("lang") + ")";
+            abstractTitle.textContent = defaultTitles["abstract"][abstractLang];
             abstract.insertAdjacentElement("afterbegin", abstractTitle);
         }
 
@@ -724,7 +743,7 @@ function reformatFootnotes(content) {
             // assign classes for rendering and for range-specific stylings
             if (i + 1 < 10) {
                 footnote.classList.add("footnote");
-                footnote.classList.add("footnote-1-10");
+                footnote.classList.add("footnote-1-9");
             } else if (i + 1 >= 10 && i + 1 <= 99) {
                 footnote.classList.add("footnote");
                 footnote.classList.add("footnote-10-99");
@@ -732,11 +751,17 @@ function reformatFootnotes(content) {
                 footnote.classList.add("footnote");
                 footnote.classList.add("footnote-100-999");
             }
-             // save footnoteSpan html separately as attribute to preserve anchors:
-            footnote.setAttribute("footnote-html", footnotes[i].firstElementChild.innerHTML);
-            // assign footnote text to footnote span as innerText:
-            footnote.innerText = footnotes[i].firstElementChild.innerText;
-            checkMaxLengthOfInnerText(footnote, maxFootnoteLength);
+
+            // save footnoteSpan html separately as attribute to preserve anchors:
+            let foonoteHTML;
+            if(footnotes[i].firstElementChild !== null) {
+                foonoteHTML = footnotes[i].firstElementChild.innerHTML;
+                footnote.setAttribute("footnote-html", foonoteHTML.trim());
+                // assign innerText to new defined footnote:
+                footnote.innerText = footnotes[i].firstElementChild.innerText;
+                // check footnote length based on innerText:
+                checkMaxLengthOfInnerText(footnote, maxFootnoteLength);
+            }
             footnotesCollection.push(footnote);
         }
 
@@ -759,6 +784,7 @@ function createEndnotesSection(content) {
     let endnotesSection = content.querySelector(".footnotes-section");
     if(endnotesSection !== null) {
         endnotesSection.id = "endnotes-section";
+        endnotesSection.classList.add("meta-section");
         // add default section title:
         let endnotesTitle = document.createElement("h3")
         endnotesTitle.innerHTML = defaultTitles["endnotes"][lang];
@@ -794,70 +820,86 @@ function createEndnotesSection(content) {
  */
 function createReferenceList(content) {
 
-    let referenceList = document.createElement("div");
-    referenceList.id = "reference-list";
-    referenceList.classList.add("meta-section");
-
-    let referenceSection = content.querySelector(".reference-section");
+    let referenceList = document.createElement("ul");
     let references = []; // no ref-list
-    if(referenceSection !== null) {references = content.querySelectorAll(".reference");};
+    if(content.querySelectorAll(".reference") !== null) {
+        if(content.querySelectorAll(".reference").length) {
+            referenceList.id = "reference-list";
+            referenceList.classList.add("meta-section");
 
-    // add ref-list title
-    let lang = document.documentElement.lang;
-    let refListTitle = document.createElement("h3")
-    refListTitle.innerHTML = defaultTitles["references"][lang];
-    refListTitle.classList.add("main-section-title");
-    referenceList.appendChild(refListTitle)
+            // add ref-list title
+            let lang = document.documentElement.lang;
+            let refListTitle = document.createElement("h3")
+            refListTitle.innerHTML = defaultTitles["references"][lang];
+            refListTitle.classList.add("main-section-title");
+            referenceList.appendChild(refListTitle);
 
-    // recreate reference elements:
-    if(references.length) {
-        for (let i = 0; i < references.length; i++) {
-            let label = references[i].querySelector(".label");
-            let mixedCitation = references[i].querySelector(".mixed-citation");
-            
-            // handle ext-ref-links and urlify plain url strings:
-            let extRef;
-            if(references[i].querySelector(".ext-ref") !== null) {
-                // rebuild ext-refs as single anchor:
-                extRef = references[i].querySelector(".ext-ref")
-                let extRefLink = document.createElement("a");
-                extRefLink.classList.add("ext-ref");
-                extRefLink.target = "_blank";
-                extRefLink.href = extRef.href;
-
-                // clone specific use attribute:
-                if(extRef.getAttribute("data-specific-use")) {
-                    let specificUse = extRef.getAttribute("data-specific-use");
-                    extRefLink.setAttribute("data-specific-use", specificUse);
-                    // display zenon-links in parenthesis-notation:
-                    if(specificUse === "zenon") { 
-                        extRefLink.innerHTML = "[Zenon &#9741]";
-                    };
-                    if(specificUse === "weblink") { 
-                        extRefLink.innerHTML = "" + extRef.href + "";
-                    };
-                }
-                // extract reference text from ext-ref-element
-                mixedCitation.innerHTML = URLifyString(mixedCitation.textContent);
-                mixedCitation.append(extRefLink);
-            }
-            else if(mixedCitation !== null) {
-                mixedCitation.innerHTML = URLifyString(mixedCitation.innerText);
-            }
-            else {
-                mixedCitation = document.createElement("p");
-                mixedCitation.classList.add("mixed-citation");
-            }
-
-            // append reference elements:
-            references[i].innerHTML = "";
-            references[i].appendChild(label);
-            // references[i].append(label);
-            references[i].append(mixedCitation);
-            referenceList.append(references[i]);
+            // get and add reference elements:
+            references = content.querySelectorAll(".reference");
+            referenceList = addReferencesToReferenceList(referenceList, references);
+        }
+        else {
+            referenceList.id = "reference-list-empty";
         }
     }
     return (referenceList);
+}
+
+/**
+ * add references to reference list:
+ * @param {DocumentFragment} referenceList as section with author-year-label,
+ * reference titles and external ref-links
+ * @param {NodeList} references: .reference elements w
+ * @returns {HTMLElement} referenceList as meta-section with author-year-label,
+ * reference titles and external ref-links
+ */
+function addReferencesToReferenceList(referenceList, references) {
+
+    for (let i = 0; i < references.length; i++) {
+        let label = references[i].querySelector(".label");
+        let mixedCitation = references[i].querySelector(".mixed-citation");
+        
+        // handle ext-ref-links and urlify plain url strings:
+        if(references[i].querySelector(".ext-ref") !== null) {
+            // rebuild ext-refs as single anchor:
+            let extRef = references[i].querySelector(".ext-ref")
+            let extRefLink = document.createElement("a");
+            extRefLink.classList.add("ext-ref");
+            extRefLink.target = "_blank";
+            extRefLink.href = extRef.href;
+
+            // clone specific use attribute:
+            if(extRef.getAttribute("data-specific-use")) {
+                let specificUse = extRef.getAttribute("data-specific-use");
+                extRefLink.setAttribute("data-specific-use", specificUse);
+                // display zenon-links in parenthesis-notation:
+                if(specificUse === "zenon") { 
+                    extRefLink.innerHTML = "[Zenon &#9741]";
+                };
+                if(specificUse === "weblink") { 
+                    extRefLink.innerHTML = "" + extRef.href + "";
+                };
+            }
+            // extract reference text from ext-ref-element
+            mixedCitation.innerHTML = URLifyString(mixedCitation.textContent);
+            mixedCitation.append(extRefLink);
+        }
+        else if(mixedCitation !== null) {
+            mixedCitation.innerHTML = URLifyString(mixedCitation.innerText);
+        }
+        else {
+            mixedCitation = document.createElement("p");
+            mixedCitation.classList.add("mixed-citation");
+        }
+
+        // append reference elements:
+        references[i].innerHTML = "";
+        references[i].appendChild(label);
+        references[i].append(mixedCitation);
+        referenceList.append(references[i]);
+    }
+
+    return(referenceList);
 }
 
 /**
@@ -980,7 +1022,6 @@ function createSourceOfIllustrations(figureSection) {
         let lang = document.documentElement.lang;
         let sourceOfIllustrationsTitle = document.createElement("h3");
         sourceOfIllustrationsTitle.classList.add("main-section-title");
-        // sourceOfIllustrationsTitle.classList.add("title-appendix");
         sourceOfIllustrationsTitle.innerHTML = defaultTitles["sourceOfIllustrations"][lang];
         sourceOfIllustrations.appendChild(sourceOfIllustrationsTitle);
 
@@ -1177,7 +1218,6 @@ function createContributorsCard(contributor) {
     };
 
     // parse and append email information:
-    let email;
     if(contributor.querySelector(".email") !== null) {
         email = contributor.querySelector(".email");
         contributorsCard.append(email);
@@ -1235,6 +1275,10 @@ function createArticleMetaSection(content) {
                date.textContent = date.getAttribute("iso-8601-date");
             }
             articleMetaSection.appendChild(date);
+        }
+        if(articleMeta.querySelector(".citation-guideline") !== null) {
+            articleMetaSection.appendChild
+            (articleMeta.querySelector(".citation-guideline"));
         }
         if(articleMeta.querySelector(".copyright-statement:not([content-type='print'])")) {
             articleMetaSection.appendChild(articleMeta.querySelector(".copyright-statement:not([content-type='print'])"));
@@ -1856,7 +1900,7 @@ function calculateClientMeasurementsOfElement(element) {
     let documentRoot = document.querySelector(':root');
     let maxPageContentHeight = getComputedStyle(documentRoot).getPropertyValue("--max-page-content-height");
     if(maxPageContentHeight !== "") {maxPageContentHeight = parseInt(maxPageContentHeight);} 
-    else { maxPageContentHeight = 907;}
+    else { maxPageContentHeight = 970;}
  
     // define values of pageContexts objecs:
     let pageContexts = {
@@ -1929,29 +1973,25 @@ function calculateNodeDistances(contexts, sourceNode) {
     let nodeTypes = defineNodeTypes(contexts, sourceNode);
 
     // calculate distances of figure nodes:
-    if (nodeTypes["sourceNodeType"] === "figure" || 
-    nodeTypes["sourceNodeType"] === "float") {
+    if (nodeTypes["sourceNodeType"] === "figure" 
+    || nodeTypes["sourceNodeType"] === "float") {
         contexts = calculateDistancesOfFigureNodes(contexts, sourceNode);
     }
     // calculate distances of renderNode laid out on next-page:
     if(nodeTypes["renderNodeType"] === "next-page-node") {
-        contexts = calculateDistancesOfNextPageNode(contexts, sourceNode);
-    }
-    // calculate distances of title nodes:
-    if(nodeTypes["sourceNodeType"] === "title") {
-        contexts = calculateDistancesOfTitleNodes(contexts, sourceNode);
+        contexts = calculateDistancesOfNextPageNode(contexts);
     }
     // modulate distances of split nodes, partly rendered on next page:
     if(nodeTypes["sourceNodeType"] === "split-node-parent") {
-        contexts = calculateDistancesOfSplitNodes(contexts, sourceNode);
+        contexts = calculateDistancesOfSplitNodes(contexts);
     }
     // modulate distances of text nodes affected by floating figures:
     if(nodeTypes["sourceNodeType"] === "floating-figure-before") {
-        contexts = calculateDistancesOfNodesAroundFloats(contexts, sourceNode);
+        contexts = calculateDistancesOfNodesAroundFloats(contexts);
     }
     // calculate distances of regular nodes:
     if(nodeTypes["sourceNodeType"] === "regular-node") {
-        contexts = calculateDistancesOfRegularNodes(contexts, sourceNode);
+        contexts = calculateDistancesOfRegularNodes(contexts);
     }
 
     // return contexts object:
@@ -1976,11 +2016,6 @@ function defineNodeTypes(contexts, sourceNode) {
                 sourceNodeType = "float";
             } else sourceNodeType = "figure";
         break;
-        case (/title/.test(sourceNode.className)):
-            if (/title-appendix/.test(sourceNode.className)) {
-                sourceNodeType = "title-appendix";
-            } else sourceNodeType = "title";
-        break;
         case (contexts["nodeBottomBeforeSplit"] >= contexts["pageContentHeight"]):
             sourceNodeType = "split-node-parent";
             sourceNode.setAttribute("is-split-node", true);
@@ -1990,7 +2025,9 @@ function defineNodeTypes(contexts, sourceNode) {
             /float/.test(contexts["elementSetBefore"].className)):
             sourceNodeType = "floating-figure-before";
         break;
-
+        case (/title-appendix/.test(sourceNode.className)):
+            sourceNodeType = "title-appendix";
+        break;
         default:
             sourceNodeType = "regular-node";
         break;
@@ -2000,14 +2037,12 @@ function defineNodeTypes(contexts, sourceNode) {
     let renderNode = contexts["renderNodeElement"];
     let renderNodeType;
     switch (true) {
-        case (renderNode !== undefined && 
-        contexts["nodeBottomBeforeSplit"] >= contexts["pageContentHeight"]):
+        case (renderNode !== undefined && contexts["distanceFromNodeTop"]):
             renderNodeType = "split-node-child";
             renderNode.setAttribute("is-split-node", true);
-            renderNode.setAttribute("split-node-child", true);
+            renderNode.setAttribute("is-split-node-child", true);
         break;
-        case (renderNode !== undefined && 
-        !contexts["distanceFromNodeTop"]):
+        case (renderNode !== undefined && !contexts["distanceFromNodeTop"]):
             renderNodeType = "next-page-node";
             renderNode.setAttribute("next-page-node", true);
         break;
@@ -2023,7 +2058,7 @@ function defineNodeTypes(contexts, sourceNode) {
     };
 }
 
-function calculateDistancesOfNextPageNode(contexts, sourceNode) {
+function calculateDistancesOfNextPageNode(contexts) {
 
     // get parameter from contexts object:
     let nodeMarginBottom = contexts["nodeMarginBottom"];
@@ -2058,7 +2093,7 @@ function calculateDistancesOfNextPageNode(contexts, sourceNode) {
     return(contexts);
 }
 
-function calculateDistancesOfSplitNodes(contexts, sourceNode) {
+function calculateDistancesOfSplitNodes(contexts) {
             
     // get parameter from contexts object:
     let elementSetBefore = contexts["elementSetBefore"];
@@ -2096,14 +2131,14 @@ function calculateDistancesOfSplitNodes(contexts, sourceNode) {
     let calculatedHeight = calculateHeightOfNodeByTextWidth(clonedRenderNode, contexts);
 
     // redefine measurements of renderNode (split-child):
-    let heightOfRenderNode = calculatedHeight - heightOfSplitParent;
-    let fromNodeBottomRenderNode = heightOfRenderNode + nodeMarginBottom;
+    let heightOfRenderNode = calculatedHeight + nodeMarginBottom - heightOfSplitParent;
+    let fromNodeBottomRenderNode = heightOfRenderNode;
     let remainingSpaceRenderNode = maxPageContentHeight - heightOfRenderNode;
 
     // add renderNode values to contexts object:
     contexts["renderNode"]["distanceFromNodeTop"] = minDistanceFromNodeTop;
     contexts["renderNode"]["distanceFromNodeBottom"] = fromNodeBottomRenderNode;
-    contexts["renderNode"]["nodeHeight"] = heightOfRenderNode;
+    contexts["renderNode"]["nodeHeight"] = heightOfRenderNode + nodeMarginBottom;
     contexts["renderNode"]["remainingSpace"] = Math.round(remainingSpaceRenderNode);
     contexts["renderNode"]["footnoteAreaHeight"] = 1;
 
@@ -2130,7 +2165,7 @@ function calculateDistancesOfFigureNodes(contexts, sourceNode) {
     return(contexts);
 }
 
-function calculateDistancesOfNodesAroundFloats(contexts, sourceNode) {
+function calculateDistancesOfNodesAroundFloats(contexts) {
 
     // get distanceFromNodeTop from figure before:
     let distanceFromNodeTop = contexts["elementSetBefore"].getAttribute("fromnodetop");
@@ -2154,7 +2189,7 @@ function calculateDistancesOfNodesAroundFloats(contexts, sourceNode) {
     return(contexts);
 }
 
-function calculateDistancesOfRegularNodes(contexts, sourceNode) {
+function calculateDistancesOfRegularNodes(contexts) {
 
     let distanceFromNodeBottom = contexts["distanceFromNodeBottom"];
     let distanceFromNodeTop = contexts["distanceFromNodeTop"];
@@ -2180,97 +2215,28 @@ function calculateDistancesOfRegularNodes(contexts, sourceNode) {
     return(contexts);
 }
 
-function calculateDistancesOfTitleNodes(contexts, sourceNode) {
-
-    let distanceFromNodeBottom = contexts["distanceFromNodeBottom"];
-    let distanceFromNodeTop = contexts["distanceFromNodeTop"];
-    let pageContentHeight = contexts["pageContentHeight"];
-    let maxPageContentHeight = contexts["maxPageContentHeight"];
-
-    // calculate nodeHeight and remaining space:
-    let nodeHeight = distanceFromNodeBottom - distanceFromNodeTop;
-    let remainingSpace = pageContentHeight - distanceFromNodeBottom;
-
-    // avoid orphans by adding remaining-space as margin-top (push to next page)
-    let marginBottom;
-    if (remainingSpace <= noOrphanArea && autoAvoidOrphans && !devMode) {
-        marginBottom = parseInt(getComputedStyle(sourceNode).marginBottom); 
-        sourceNode.style.marginTop = noOrphanArea * 1.5 + "px";
-        fromNodeBottomRenderNode = nodeHeight + marginBottom;
-        remainingSpaceRenderNode = maxPageContentHeight - nodeHeight;
-
-        contexts["distanceFromNodeTop"] = distanceFromNodeTop;
-        contexts["distanceFromNodeBottom"] = distanceFromNodeBottom;
-        contexts["nodeHeight"] = nodeHeight;
-        contexts["remainingSpace"] = Math.round(remainingSpace);
-
-        // add renderNode values in contexts object:
-        contexts["renderNode"]["distanceFromNodeTop"] = minDistanceFromNodeTop;
-        contexts["renderNode"]["distanceFromNodeBottom"] = fromNodeBottomRenderNode;
-        contexts["renderNode"]["nodeHeight"] = nodeHeight;
-        contexts["renderNode"]["remainingSpace"] = Math.round(remainingSpaceRenderNode);
-        contexts["renderNode"]["footnoteAreaHeight"] = 1;
-    }
-    else {
-        // update renderNode values in contexts object:
-        contexts["renderNode"]["distanceFromNodeTop"] = distanceFromNodeTop;
-        contexts["renderNode"]["distanceFromNodeBottom"] = distanceFromNodeBottom;
-        contexts["renderNode"]["nodeHeight"] = nodeHeight;
-        contexts["renderNode"]["remainingSpace"] = Math.round(remainingSpace);
-        contexts["renderNode"]["footnoteAreaHeight"] = contexts["footnoteAreaHeight"];
-    }
-
-    // update sourceNode values in contexts object:
-    contexts["distanceFromNodeTop"] = distanceFromNodeTop;
-    contexts["distanceFromNodeBottom"] = distanceFromNodeBottom;
-    contexts["nodeHeight"] = nodeHeight;
-    contexts["remainingSpace"] = Math.round(remainingSpace);
- 
-    return(contexts);
-}
-
-function recalculateDistancesBasedOnElementSetBefore(contexts) {
-
-    // get fromNodeBottom before of elementSetBefore
-    let elementSetBefore = contexts["elementSetBefore"];    
-    if(elementSetBefore) {
-        let fromNodeBottomBefore = parseFloat(elementSetBefore.getAttribute("fromNodeBottom"));
-        // get distances of sourceNode from contexts-object;
-        let distanceFromNodeTop = contexts["distanceFromNodeTop"];
-        let distanceFromNodeBottom = contexts["distanceFromNodeBottom"];
-        let remainingSpace = contexts["remainingSpace"];
-        let pageContentHeight = contexts["pageContentHeight"];
-        let nodeMarginBottom = contexts["nodeMarginBottom"];
-
-        // re-calculate distances:
-        distanceFromNodeTop = fromNodeBottomBefore;
-        distanceFromNodeBottom = distanceFromNodeTop + contexts["nodeHeight"] + nodeMarginBottom;
-        remainingSpace = pageContentHeight - distanceFromNodeBottom;
-        if(remainingSpace < 0) {remainingSpace = 0;}
-
-        // assign modulated values to contexts-object:
-        contexts["distanceFromNodeTop"] = distanceFromNodeTop;
-        contexts["distanceFromNodeBottom"] = distanceFromNodeBottom;
-        contexts["remainingSpace"] = remainingSpace;
-    }
-    return(contexts);
-}
-
-function testCalculationsOfNodeDistances(pageElement) {
+function logCalculationsOfNodeDistances(pageElement) {
     
     let pageId = (pageElement !== null) ? pageElement.id : false;
     let pageContent = pageElement.querySelector(".pagedjs_page_content");
-    let selector = ".text-content:not(.title-header-title,.title-header-subtitle,.title-header-authors),figure";
+    let figureStatsPage = pageHasFigures(pageContent);
+    let selector = ".text-content:not(.title-header-title,.title-header-subtitle,.title-header-authors),figure:not(#journal-logo)";
     let elementsOfPage = pageContent.querySelectorAll(selector);
-    
+
+    let elementIds = [];
     for (let i = 0; i < elementsOfPage.length; i++) {
         let element = elementsOfPage[i]; 
-        let isSplitNodeChild = element.getAttribute("split-node-child");
-        let isSplitNodeParent = element.getAttribute("split-node-parent");
-        let dataId = element.getAttribute("data-id");
-        let elementId = (isSplitNodeChild) ? "split-child-" + dataId : element.id;
-        elementId = (isSplitNodeParent) ? "split-parent-" + elementId : elementId;
 
+        let elementId;
+        if(element.getAttribute("is-split-node-parent")) {
+            elementId = "split-parent-" + element.id;
+            elementIds.push(element.id);
+        }
+        else if(element.id == "") {
+            elementId = "split-child-from-previous";
+        }
+        else {elementId = element.id;}
+      
         // calculate client measurements of element:
         let pageContexts = calculateClientMeasurementsOfElement(element);
         let fromNodeTop = pageContexts["distanceFromNodeTop"];
@@ -2280,7 +2246,7 @@ function testCalculationsOfNodeDistances(pageElement) {
         let nodeHeight = fromNodeBottom - fromNodeTop; 
         let remainingSpace = pageContexts["pageContentHeight"] - fromNodeBottom;
     
-        // define pageContexts calculated:
+        // define pageContexts calculated:  
         let fromNodeTopCalc = parseInt(element.getAttribute("fromNodeTop"));
         let fromNodeBottomCalc = parseInt(element.getAttribute("fromNodeBottom"));
         let nodeHeightCalc = parseInt(element.getAttribute("nodeHeight"));
@@ -2305,23 +2271,21 @@ function testCalculationsOfNodeDistances(pageElement) {
         let passedColor = "color: green;";
 
         let pageIdLog = pageId + "----------------------";
+        console.log(pageIdLog);
         let elementIdLog = "---" + elementId;
-        console.log(pageIdLog );
-        if(elementId == "") {
-            console.warn(elementIdLog);
-        } else {
-            console.log(elementIdLog);
-        }
+        console.log(elementIdLog);
+
+        console.log("---page-has-figures:",figureStatsPage);
 
         let fromNodeTopLog = "------fromNodeTop => was: " + 
             fromNodeTopCalc + ", is: " + fromNodeTop;
         if(isNaN(fromNodeTopCalc)) {
             console.log("%c" + fromNodeTopLog, failColor);
         }
-        else if(Math.abs(fromNodeTop - fromNodeTopCalc) >= 60) {
+        else if(Math.abs(fromNodeTop - fromNodeTopCalc) >= 100) {
             console.log("%c" + fromNodeTopLog, failColor);
         }
-        else if(Math.abs(fromNodeTop - fromNodeTopCalc) >= 10) {
+        else if(Math.abs(fromNodeTop - fromNodeTopCalc) >= 50) {
             console.log("%c" + fromNodeTopLog, warnColor);
         } 
         else {console.log("%c" + fromNodeTopLog, passedColor);}
@@ -2508,7 +2472,7 @@ Handle typesetting of figure elements:
  */
 
 function processFigureEnhancing(nodeParams) {
-
+    
     // shorten nodeParams and contextsParams:
     let sourceNode = nodeParams["sourceNode"];
     let renderNode = nodeParams["renderNode"];
@@ -2603,9 +2567,9 @@ function processFigureEnhancing(nodeParams) {
             }
             if(!setNoFigures) {
                 renderNode.insertAdjacentElement("afterend", currentFigure);
+                updateFigureMap(currentFigure.id);
+                pushFigRefToNextNode(sourceNode.id, nextFigure.id);
             }
-            updateFigureMap(currentFigure.id);
-            pushFigRefToNextNode(sourceNode.id, nextFigure.id);
         } 
         else {
             pushFigRefToNextNode(sourceNode.id, currentFigure.id);
@@ -2620,7 +2584,9 @@ function processFigureEnhancing(nodeParams) {
             for (let i = 0; i < nextFigRefs.length; i++) {     
                 let figure = getNextFigureElement(nextFigRefs[i], parsedContent);
                 setLayoutSpecsOfFigure(figure, "inset");
-                renderNode.insertAdjacentElement("afterend", figure);
+                if(!setNoFigures) {
+                    renderNode.insertAdjacentElement("afterend", figure);
+                }
                 updateFigureMap(figure.id);
             }
         }        
@@ -2638,7 +2604,7 @@ function processFigureEnhancing(nodeParams) {
                 setLayoutSpecsOfFigure(figure, "inset");
                 renderNode.insertAdjacentElement("afterend", figure);
             }
-        }        
+        }      
     }
 }
 
@@ -2943,6 +2909,12 @@ function figuresFitInCurrentPageFrame(set, nodeParams) {
         fitsCurrentFigure = false;
         fitsNextFigure = false;
     }
+
+    // exclude figures within list blocks:
+    if(/LI/.test(nodeParams["sourceNode"].tagName)) {
+        fitsCurrentFigure = false;
+        fitsNextFigure = false;
+    }
   
     // return results as object:
     return fits = {
@@ -3194,6 +3166,37 @@ function pushFigureElementOnTopOfPage(pageElement, selector) {
                     element.classList.add("first-element");
                 }
             }
+        }
+    }
+}
+
+/**
+ * push title (headline) orphans to next page 
+ * @param {node} pageElement - page element that just been rendered
+ * @param {node} page - node of the page being rendered
+ * @param {Object} breakToken - location of the beginning of the overflow
+ * @returns {void} breakToken.node and breakToken.offset are change in DOM
+ */ 
+function pushTitleOrphansToNextPage(pageElement, page, breakToken) {
+
+    let pageContent = pageElement.querySelector(".pagedjs_page_content");
+    let elementsOfPage = pageContent.querySelectorAll(".text-content,figure");
+    let hookDocumentSource = page.hooks.afterPageLayout.context.source;
+
+    for (let i = 0; i < elementsOfPage.length; i++) {
+        let element = elementsOfPage[i];
+        if(/title/.test(elementsOfPage[i].className) && /last-element/.test(elementsOfPage[i].className)) {
+            // find matching element in the pagedjs document source hook using its data-ref
+            let sourceRef = element.getAttribute("data-ref");
+            let sourceElement = hookDocumentSource.querySelector(`[data-ref="${sourceRef}"]`);
+        
+            // update breakToken.node to render element on the next page
+            breakToken.node = sourceElement;
+            // reset breakToken.offset to render from the start of the element
+            breakToken.offset = 0; 
+
+            // remove element from current page's DOM
+            elementsOfPage[i].remove();
         }
     }
 }
