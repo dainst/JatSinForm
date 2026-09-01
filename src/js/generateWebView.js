@@ -52,6 +52,10 @@ panelWrapper.ariaLabel = "Supplementary panel";
 panelWrapper.role = "region";
 panelWrapper.tabIndex = -1;
 
+  // add search-log:
+const searchLog = document.createElement("div");
+searchLog.id = "search-log";
+
 /** --------------------------------------
  * window document state event listener:
  * @type {document}
@@ -136,6 +140,7 @@ panelWrapper.tabIndex = -1;
         // add panelContents and mainTextPanel to panelWrapper
         panelWrapper.appendChild(panelContents);
         panelWrapper.appendChild(panelMainText);
+        panelWrapper.appendChild(searchLog);
 
         // add content wrappers to article:
         article.appendChild(textContentWrapper);
@@ -261,7 +266,7 @@ function createCoverArea(htmlWrapper) {
             let posterImageAttrib = posterImage.querySelector(".attribution");
             posterImageAttrib.classList.add("poster-image-attribution");
         }
-        // add accessability helper (altText, role)
+        // add accessability helper (role)
         if(posterImage.querySelector("img") !== null) {
             posterImage.querySelector("img").classList.add("poster-img");
             posterImage.querySelector("img").alt = "";
@@ -333,8 +338,13 @@ function getAbstractSection(htmlWrapper) {
     let abstractSection = document.createElement("section");
     abstractSection.id = "abstract-section";
 
-    // query abstract content
-    let abstracts = htmlWrapper.querySelectorAll(".abstract, .trans-abstract");
+    // query abstract content:
+    var abstracts = [
+        // (abstract first, then: trans-abstract)
+        ...htmlWrapper.querySelectorAll(".abstract"),
+        ...htmlWrapper.querySelectorAll(".trans-abstract")
+    ];
+
     if(abstracts.length) {
         abstracts.forEach(function(abstract) {
             // get abstract lang and abstract title:
@@ -344,7 +354,7 @@ function getAbstractSection(htmlWrapper) {
                 abstractTitle = abstract.querySelector(".title").textContent.trim();
             } 
             else {
-                abstractTitle = "Abstract (" + abstractLang + ")";
+                abstractTitle = defaultTitles["abstract"][abstractLang];
             }
 
             // get abstract text:
@@ -719,21 +729,51 @@ function createContributorsCard(contributor) {
     let institutionIdLink = document.createElement("a");
     let email = document.createElement("address");
 
+    // prefer string-name first, e.g. Dr. Werner Heisenberg
+    let preferredFullName = "";
+    if(contributor.querySelector(".string-name") !== null) {
+        preferredFullName = contributor.querySelector(".string-name").textContent;
+    }
     // parse and reorder names and contrib-ids (e.g. orcid):
-    if(contributor.querySelector(".given-names") !== null && contributor.querySelector(".surname") !== null) {
+    else if(contributor.querySelector(".given-names") !== null
+    && contributor.querySelector(".surname") !== null) {
+        
+        // get prefix:
+        let prefix;
+        if(contributor.querySelector(".prefix") !== null) {
+            prefix = contributor.querySelector(".prefix").textContent;
+            preferredFullName = prefix;
+        }
+        // get surname and given-names
         let givenName = contributor.querySelector(".given-names").textContent;
         let surName = contributor.querySelector(".surname").textContent;
-        if(contributor.querySelector(".contrib-id") !== null) {
-            let contribId = contributor.querySelector(".contrib-id").textContent;
-            contribIdLink.classList.add("contributor-link");
-            contribIdLink.target = "_blank";
-            contribIdLink.rel= "noopener noreferrer";
-            contribIdLink.href = contribId;
-            contribIdLink.innerHTML = givenName + " " + surName;
-            name.append(contribIdLink);
-        } else { name.innerHTML = givenName + " " + surName;}
-        contributorsCard.append(name);
-    };
+        preferredFullName = preferredFullName + " " + givenName + " " + surName;
+       
+        // get suffix:
+        let suffix;
+        if(contributor.querySelector(".suffix") !== null) {
+            suffix = contributor.querySelector(".suffix").textContent;
+            preferredFullName = preferredFullName + ", " + suffix;
+        }
+    }
+    // fallback:
+    else {
+        preferredFullName = "[Prefix] [Given-Names] [Surname] [Suffix]";
+    }  
+
+      // wrap preferredFullName into anchor with orcid-link:
+    if(contributor.querySelector(".contrib-id") !== null) {
+        contribIdLink.classList.add("contributor-link");
+        contribIdLink.target = "_blank";
+        contribIdLink.href = contributor.querySelector(".contrib-id").textContent;
+        contribIdLink.innerHTML = preferredFullName
+        name.append(contribIdLink);
+    } 
+    // display full name only:
+    else { 
+        name.innerHTML = preferredFullName;
+    }
+    contributorsCard.append(name);
 
      // parse and reorder affiliation information: 
     if(contributor.querySelector(".institution") !== null) {
@@ -1328,21 +1368,32 @@ function reorderFigureElements(figureSection) {
         let figureList = document.createElement("ol");
         figureList.classList.add("figure-list");
         figures.forEach(figure => {
+            let img = figure.querySelector("img");
+            let altText = figure.querySelector(".alt-text");
             let label = figure.querySelector(".label");
             let figCaption = figure.querySelector("figcaption");
             let attribution = figure.querySelector(".attribution");
             let license = figure.querySelector(".license");
             let licensePara = figure.querySelector(".license-p");
             let licenseUrl = figure.querySelector(".license-url");
-            let img = figure.querySelector("img");
-            
+         
+            // add altText to image and add alt-text to search haystack:
+            let searchHaystack = "show-all#";
+            if(img !== null && altText !== null) {
+                img.alt = altText.textContent;
+                searchHaystack += " " + altText.textContent.toLowerCase() + " ";
+            }
+
+            // add figCaption text to search haystack:
+            if(img !== null && figCaption.querySelector("p") !== null) {
+                searchHaystack += figCaption.querySelector("p").textContent.toLowerCase();
+            }
+
+            // set data-search-haystack attribute:
+            figure.setAttribute("data-search-haystack", searchHaystack);
+
+            // reorder image meta elements:
             if(figCaption !== null) {
-                if(img !== null && figCaption.querySelector("p[id]") !== null) {
-                    /* use figCaption due to the absence of dedicated alternative texts,
-                    that are helpfully describing the image (=> "Barrierefreiheit") */
-                    let altText = figCaption.querySelector("p[id]").textContent;
-                    img.alt = altText;
-                }
                 if(label !== null) {
                     figCaption.insertAdjacentElement("afterbegin", label);
                 }
@@ -1357,6 +1408,7 @@ function reorderFigureElements(figureSection) {
                     figCaption.insertAdjacentElement("beforeend", licenseUrl);
                 } 
             }
+
             // use list elements to structure figure listing:
             let figListElement = document.createElement("li");
             figListElement.classList.add("figure-list-element");
@@ -2038,23 +2090,22 @@ function titleOfResourcesAsToolTip(bibRefs) {
 
         if(bibRef.href !== null && bibRef.href) {
             refTarget = bibRef.getAttribute("href");
-            // exclude ids with whitespace separator:
-            if(!refTarget.includes(' ')) {
-                target = document.querySelector(refTarget);
-                let bibTitle; // bib reference as full citation
-                if(target !== null) {
-                    bibTitle = target.querySelector("p");
-                    // trim valid bibTitles
-                    if(bibTitle !== null && bibTitle.textContent) {
-                        bibTitle = bibTitle.textContent.trim();
-                        bibTitle = bibTitle.replace(/[\n\r]+|[\s]{2,}/g, ' ');
-                        bibTitle = "Jump to: " + bibTitle;
-                    } else ( bibTitle = "Jump to: No title found");
-                    // add bibTitle as tooltip (title-attribute)
-                    bibRef.title = bibTitle;
-                }
+            target = document.querySelector("#" + CSS.escape(refTarget));
+            let bibTitle; // bib reference as full citation
+            if(target !== null) {
+                bibTitle = target.querySelector("p");
+                // trim valid bibTitles
+                if(bibTitle !== null && bibTitle.textContent) {
+                    bibTitle = bibTitle.textContent.trim();
+                    bibTitle = bibTitle.replace(/[\n\r]+|[\s]{2,}/g, ' ');
+                    bibTitle = "Jump to: " + bibTitle;
+                } else ( bibTitle = "Jump to: No title found");
+                // add bibTitle as tooltip (title-attribute)
+                bibRef.title = bibTitle;
             }
-            else {console.warn("'" + refTarget + "' is not a valid selector");}
+            else {
+               // console.warn("'" + refTarget + "' is not a valid selector");
+            }
         }
     });
 }
@@ -2141,7 +2192,6 @@ function addBackLinkAnchorToFootnote(footnote) {
     }
  }
 
-
 function scaleImage(img) {
 
     let natWidth = img.naturalWidth;
@@ -2174,3 +2224,4 @@ function addDaiHomeLinkToPanelNavigation() {
     homepageLink.appendChild(daiGreif);
     document.querySelector("#panel-navigation").append(homepageLink);
 }
+
