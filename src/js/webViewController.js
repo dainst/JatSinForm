@@ -35,6 +35,11 @@ const htmlViewScriptLibrary = {
         "src-local": "https://fonts.bunny.net/css?family=noto-sans:300"
     }
 } 
+const panelSearchConfig = {
+    "#panel-figures": "figure:not(#poster-image,#journal-logo)",
+    "#panel-references": ".reference",
+    "#panel-notes": ".footnote",
+}
 
 /** ---------------------------------
  * document state event listener:
@@ -67,7 +72,7 @@ const htmlViewScriptLibrary = {
 
     if (event.target.readyState === "complete") {
 
-        // remove progress-bar:
+        // hide progress-bar:
         if(document.querySelector("#progress-bar") !== null) {
             document.querySelector("#progress-bar").style.display = "none";
         }
@@ -76,6 +81,7 @@ const htmlViewScriptLibrary = {
         focusTocTargetsOnHoverSection();
         handleAnchorHashFeatures();
         window.addEventListener("hashchange", handleAnchorHashFeatures);
+        filterAsidePanelsBySelectedText();
 
         // sync initial panel hash (#panel-cover by default):
         if (!window.location.hash) {window.location.hash = "#panel-cover"}
@@ -328,3 +334,81 @@ function createMap(mapId, coordinates) {
         }
     }
 }
+
+ /**
+ * filter aside-panel content by selected text on event listener selection-change
+ * @returns {void} panel elements are filtered in the DOM directly
+ */
+function filterAsidePanelsBySelectedText() {
+
+    // listen to selectionchange:
+    document.addEventListener("selectionchange", () => {
+
+        // get searchLog as feedback element:
+        let searchLog = document.querySelector("#search-log");
+
+        // define current panel context by locationHash:
+        let locationHash = window.location.hash;
+        if(/#f-/.test(locationHash)) {locationHash = "#panel-figures";}
+        if(/#fn-/.test(locationHash)) {locationHash = "#panel-notes";}
+        if(/#ref-/.test(locationHash)) {locationHash = "#panel-references";}
+
+        // get panelElements selector from panelSearchConfig:
+        let selector = panelSearchConfig[locationHash]; 
+        if(selector === undefined) {return;}
+
+        // give user some time to select desired text string:
+        setTimeout(() => {
+
+            // get selected text and show or hide searchLog accordingly
+            const selectedText = window.getSelection().toString();
+            if (selectedText.length > 2 && selectedText.length < 50) {
+                searchLog.style = "display:block;";
+                searchLog.textContent = selectedText;
+            }
+            else {
+                searchLog.style = "display:none;";
+                searchLog.textContent = selectedText;
+            }
+            // trim selected text:
+            let searchTerm = selectedText.toLowerCase().trim();
+           
+            // query panel elements (e.g. FIGURE, .footnote)
+            let panelElements = document.querySelectorAll(selector);
+            if(!panelElements.length || searchTerm == null) {
+                return;
+            }
+            
+            // search panel elements:
+            panelElements.forEach(element => {
+                 let hayStack;
+                 let target;
+                // get haystack and define target for figure elements specifically:
+                if(locationHash === "#panel-figures") {
+                    hayStack = element.getAttribute("data-search-haystack");
+                    target = element.parentElement;
+                } 
+                // default behaviour, e.g. footnote, reference elements
+                else {
+                    hayStack = element.innerText.toLowerCase();
+                    target = element;
+                }
+            
+                // show all targets(s) by default:
+                if(searchTerm === "#show-all") {
+                    target.style = "";
+                }
+                // show result elements (searchTerm in haystack)
+                else if(hayStack !== null && hayStack.includes(searchTerm)) {
+                    target.style = "";
+                } 
+                // hide the rest:
+                else {
+                    target.style = "display:none";
+                }
+            });
+
+        }, 2000);
+    });
+}
+
